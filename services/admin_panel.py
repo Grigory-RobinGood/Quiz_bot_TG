@@ -5,6 +5,7 @@ from aiogram.filters import StateFilter
 
 from db.models import add_question
 from config_data.config import TgBot
+from services.FSM import AddQuestionState
 
 
 # Команда для начала добавления вопроса (только для администратора)
