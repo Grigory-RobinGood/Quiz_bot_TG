@@ -12,4 +12,5 @@ class AddQuestionState(StatesGroup):
     waiting_for_option_3 = State()
     waiting_for_option_4 = State()
     add_question = State()
+    check_and_add_question = State()
 

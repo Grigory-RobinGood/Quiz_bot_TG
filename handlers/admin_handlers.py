@@ -25,11 +25,12 @@ async def add_question(call: CallbackQuery, state: FSMContext):
     await call.answer()  # Закрываем всплывающее уведомление Telegram
     await state.set_state(AddQuestionState.waiting_for_league)  # Устанавливаем состояние для добавления вопроса
 
+
 #  Разобраться с коллбэк дата
 #__Выбираем Лигу в которую хотим добавить вопрос__
 @router.callback_query(AddQuestionState.waiting_for_league)
 async def send_league(call: CallbackQuery, state: FSMContext):
-    await state.update_data(league=str(callback_data))  # Запоминаем какую лигу выбрали
+    await state.update_data(league=call.data)  # Запоминаем какую лигу выбрали
     await call.message.answer(text=LEXICON_RU['send_level_question'], reply_markup=admin_kb_select_level)
     await call.answer()  # Закрываем всплывающее уведомление Telegram
     await state.set_state(AddQuestionState.waiting_for_level)
@@ -38,7 +39,7 @@ async def send_league(call: CallbackQuery, state: FSMContext):
 #__Выбираем уровень сложности вопроса (1, 2 или 3)__
 @router.callback_query(AddQuestionState.waiting_for_level)
 async def send_level(call: CallbackQuery, state: FSMContext):
-    await state.update_data(level=str(callback_data))  # Запоминаем какой уровень выбрали
+    await state.update_data(level=call.data)  # Запоминаем какой уровень выбрали
     await call.message.answer(text=LEXICON_RU['write_your_question'])
     await call.answer()  # Закрываем всплывающее уведомление Telegram
     await state.set_state(AddQuestionState.waiting_for_question)
@@ -80,13 +81,18 @@ async def enter_answer_var3(message: Message, state: FSMContext):
 @router.message(AddQuestionState.waiting_for_option_4)
 async def enter_answer_var4(message: Message, state: FSMContext):
     await state.update_data(answer_var4=str(message.text))  # Запоминаем четвертый вариант ответа
-    await message.answer(text=LEXICON_RU['add_question?'], reply_markup=add_or_cancel)
-    await state.set_state(AddQuestionState.add_question)
+    await message.answer(text=LEXICON_RU['check_and_add_question'], reply_markup=add_or_cancel)
+    await state.set_state(AddQuestionState.check_and_add_question)
 
 
-#__Обрабатываем нажатие на кнопку "Добавить"
-@router.callback_query(AddQuestionState.add_question)
-async def question_added(call: CallbackQuery, state: FSMContext):
+#__Проверяем введенный вопрос и ответы и добавляем в базу данных__
+@router.callback_query(AddQuestionState.check_and_add_question)
+async def check_and_add_question(call: CallbackQuery, state: FSMContext):
+    if call.data == 'cancel':
+        await call.message.answer(text="Операция отменена.")
+        await state.clear()
+        return
+
     # Получаем данные из машины состояний
     data = await state.get_data()
 
@@ -95,25 +101,26 @@ async def question_added(call: CallbackQuery, state: FSMContext):
     level = data.get("level", "Не указан уровень")
     question = data.get("question", "Не указан вопрос")
     correct_answer = data.get("correct_answer", "Не указан правильный вариант")
-    answer_2 = data.get("answer_2", "Не указан вариант 2")
-    answer_3 = data.get("answer_3", "Не указан вариант 3")
-    answer_4 = data.get("answer_4", "Не указан вариант 4")
+    answer_2 = data.get("answer_var2", "Не указан вариант 2")
+    answer_3 = data.get("answer_var3", "Не указан вариант 3")
+    answer_4 = data.get("answer_var4", "Не указан вариант 4")
 
     # Вывод сообщения с собранными данными
-    await call.message.answer(
-        text=f"{LEXICON_RU['question_added']}\n"
-             f"Лига: {league}\n"
-             f"Уровень: {level}\n"
-             f"Вопрос: {question}\n"
-             f"Правильный ответ: {correct_answer}"
-             f"2. {answer_2}\n"
-             f"3. {answer_3}\n"
-             f"4. {answer_4}\n"
-    )
+    # await call.message.answer(
+    #     text=f'''{LEXICON_RU['question_added']}\\n
+    #          Лига: {league}\\n
+    #          Уровень: {level}\\n
+    #          Вопрос: {question}\\n
+    #          Правильный ответ\: {correct_answer}\\n
+    #          2. {answer_2}\\n
+    #          3. {answer_3}\\n
+    #          4. {answer_4}\\n''',
+    #     parse_mode='MarkdownV2'
+    # )
 
     # Запуск функции добавления в базу данных
     try:
-        await add_question_to_db(
+        add_question_to_db(
             session=session,
             league=league,
             level=level,
@@ -121,51 +128,17 @@ async def question_added(call: CallbackQuery, state: FSMContext):
             correct_answer=correct_answer,
             answer_2=answer_2,
             answer_3=answer_3,
-            answer_4=answer_4,
-        )
+            answer_4=answer_4)
 
         await call.message.answer(text=LEXICON_RU['db_success'])  # Сообщение об успехе
+        # Сбрасываем состояние
+        await state.clear()
+
     except Exception as e:
         await call.message.answer(
             text=f"{LEXICON_RU['db_error']} {str(e)}"  # Сообщение об ошибке
         )
-
-    # Сбрасываем состояние
-    await state.clear()
+        await state.clear()
 
     # Закрываем уведомление
     await call.answer()
-
-
-# ------------Обрабатываем нажатие кнопки "показать статистику"-------------
-@router.callback_query(f.ShowStatisticCallbackData.filter())
-async def handle_show_statistic(call: CallbackQuery):
-    await call.message.answer(text=LEXICON_RU['bot_statistics'])
-    await call.answer()
-
-
-# ------------Обрабатываем нажатие кнопки "отправить рассылку"--------------
-@router.callback_query(f.SendMessageCallbackData.filter())
-async def handle_show_statistic(call: CallbackQuery):
-    await call.message.answer(text=LEXICON_RU['write_your_message'])
-    await call.answer()
-
-
-# ------------Обрабатываем нажатие кнопки "редактирование квиза"------------
-@router.callback_query(f.EditQuizCallbackData.filter())
-async def handle_show_statistic(call: CallbackQuery):
-    await call.message.answer(text=LEXICON_RU['edit_quiz'])
-    await call.answer()
-
-
-# -------------Обрабатываем нажатие кнопки "назад"---------------------------
-@router.callback_query(f.BackCallbackData.filter())
-async def handle_show_statistic(call: CallbackQuery):
-    await call.message.answer(text=LEXICON_RU['back'])
-    await call.answer()
-
-
-# Хэндлер для сообщений, которые не попали в другие хэндлеры
-@router.message()
-async def send_answer(message: Message):
-    await message.answer(text=LEXICON_RU['other_answer'])

@@ -38,12 +38,12 @@ async def main():
     # Инициализируем бот и диспетчер
     bot = Bot(
         token=config.tg_bot.token,
-        default=DefaultBotProperties(parse_mode='Markdown',
-                                     protect_content=True)
+        default=DefaultBotProperties(parse_mode='MarkdownV2',
+                                     protect_content=False)
     )
 
-    db_url = config.database.url  # Убедитесь, что путь совпадает с вашей конфигурацией
-    engine = create_engine(db_url, echo=True)
+    # db_url = config.database.url  # Убедитесь, что путь совпадает с вашей конфигурацией
+    # engine = create_engine(db_url, echo=True)
 
     redis = Redis(host='localhost')
     storage = RedisStorage(redis=redis)
@@ -69,7 +69,7 @@ async def main():
     await dp.start_polling(bot)
 
     # Создание таблиц
-    Base.metadata.create_all(bind=engine)
+    #Base.metadata.create_all(bind=engine)
 
 
 asyncio.run(main())

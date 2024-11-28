@@ -54,7 +54,7 @@ admin_kb = InlineKeyboardMarkup(
 admin_kb_league = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text=LEXICON_RU['bronze_league'],
-                              callback_data=f.BronzeLeagueCallbackData().pack()),
+                              callback_data='bronze'),
          ],
         [InlineKeyboardButton(text=LEXICON_RU['silver_league'],
                               callback_data=f.SilverLeagueCallbackData().pack()),

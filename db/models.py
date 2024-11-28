@@ -1,6 +1,13 @@
 from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
+# Создаем подключение к базе данных
+DATABASE_URL = "sqlite:///db/quiz_db.sqlite"
+engine = create_engine(DATABASE_URL, echo=True)
+
+# Создаем фабрику для сессий
+SessionLocal = sessionmaker(bind=engine)
+
 
 # Новый базовый класс для моделей
 class Base(DeclarativeBase):
@@ -20,13 +27,6 @@ class Question(Base):
     answer_3 = Column(String, nullable=False)
     answer_4 = Column(String, nullable=False)
 
-
-# Создаем подключение к базе данных
-DATABASE_URL = "sqlite:///quiz_db.sqlite"
-engine = create_engine(DATABASE_URL, echo=True)
-
-# Создаем фабрику для сессий
-SessionLocal = sessionmaker(bind=engine)
 
 # Инициализация базы данных
 Base.metadata.create_all(bind=engine)
