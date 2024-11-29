@@ -58,7 +58,7 @@ async def main():
             await message.answer(text='Вы вошли в админ панель', reply_markup=admin_kb)
 
         else:
-            await message.answer(text=LEXICON_RU['/start'], reply_markup=main_kb)
+            await message.answer(text=LEXICON_RU['/start'], reply_markup=main_kb, parse_mode='HTML')
 
     # Регистриуем роутеры в диспетчере
     dp.include_router(user_handlers.router)

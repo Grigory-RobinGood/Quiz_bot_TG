@@ -9,7 +9,7 @@ from aiogram.fsm.context import FSMContext
 from db.db_functions import add_question_to_db
 from services.FSM import AddQuestionState
 from lexicon.lexicon_ru import LEXICON_RU
-from keyboards.keyboards import admin_kb_league, admin_kb_select_level, add_or_cancel
+from keyboards.keyboards import admin_kb_league, admin_kb_select_level, add_or_cancel, admin_kb
 from services import filters as f
 from db.models import SessionLocal
 
@@ -105,18 +105,19 @@ async def check_and_add_question(call: CallbackQuery, state: FSMContext):
     answer_3 = data.get("answer_var3", "Не указан вариант 3")
     answer_4 = data.get("answer_var4", "Не указан вариант 4")
 
-    # Вывод сообщения с собранными данными
-    # await call.message.answer(
-    #     text=f'''{LEXICON_RU['question_added']}\\n
-    #          Лига: {league}\\n
-    #          Уровень: {level}\\n
-    #          Вопрос: {question}\\n
-    #          Правильный ответ\: {correct_answer}\\n
-    #          2. {answer_2}\\n
-    #          3. {answer_3}\\n
-    #          4. {answer_4}\\n''',
-    #     parse_mode='MarkdownV2'
-    # )
+    #Вывод сообщения с собранными данными
+    await call.message.answer(
+        text=f'''{LEXICON_RU['question_added']}
+             Лига: {league}
+             Уровень: {level}
+             Вопрос: {question}
+             Правильный ответ: {correct_answer}
+             Ответ №2. {answer_2}
+             Ответ №3. {answer_3}
+             Ответ №4. {answer_4}
+''',
+        parse_mode='HTML'
+    )
 
     # Запуск функции добавления в базу данных
     try:
@@ -130,15 +131,16 @@ async def check_and_add_question(call: CallbackQuery, state: FSMContext):
             answer_3=answer_3,
             answer_4=answer_4)
 
-        await call.message.answer(text=LEXICON_RU['db_success'])  # Сообщение об успехе
+        await call.message.answer(text=LEXICON_RU['db_success'], reply_markup=admin_kb)  # Сообщение об успехе
         # Сбрасываем состояние
         await state.clear()
 
     except Exception as e:
         await call.message.answer(
-            text=f"{LEXICON_RU['db_error']} {str(e)}"  # Сообщение об ошибке
+            text=f"{LEXICON_RU['db_error']} {str(e)}",  # Сообщение об ошибке
+            reply_markup=admin_kb
         )
         await state.clear()
 
-    # Закрываем уведомление
+        # Закрываем уведомление
     await call.answer()
