@@ -4,10 +4,7 @@ from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 from lexicon.lexicon_ru import LEXICON_RU, LEXICON_COMMANDS_RU
 from services import filters as f
 
-
-
-# ------- Создаем клавиатуру через ReplyKeyboardBuilder -------
-
+# ------------ Создаем главную клавиатуру через ReplyKeyboardBuilder --------------------------
 # Создание кнопок
 bronze_league = KeyboardButton(text=LEXICON_RU['bronze_league'])
 silver_league = KeyboardButton(text=LEXICON_RU['silver_league'])
@@ -17,7 +14,6 @@ suggest_question = KeyboardButton(text=LEXICON_RU['suggest_question'])
 balance = KeyboardButton(text=LEXICON_RU['balance'])
 bn_help = KeyboardButton(text=LEXICON_RU['bn_help'])
 
-# _____________Создаем главную клавиатуру___________________________________________
 main_kb = ReplyKeyboardMarkup(
     keyboard=[
         [bronze_league, silver_league, gold_league],  # Первая строка
@@ -27,9 +23,9 @@ main_kb = ReplyKeyboardMarkup(
     resize_keyboard=True  # Уменьшает кнопки
 )
 
-# -------------Создаем клавиатуры админа--------------------------
+# -----------------Создаем клавиатуры админа---------------------------------------
 
-# Создаем главную клавиатуру админа
+# ______Создаем главную клавиатуру админа_______________
 admin_kb = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text=LEXICON_RU['add_question'],
@@ -50,7 +46,7 @@ admin_kb = InlineKeyboardMarkup(
     ]
 )
 
-# Создаем клавиатуру выбора лиги
+# _____________Создаем клавиатуру выбора лиги__________-
 admin_kb_league = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text=LEXICON_RU['bronze_league'],
@@ -68,7 +64,7 @@ admin_kb_league = InlineKeyboardMarkup(
     ]
 )
 
-#Создаем клавиатуру выбора сложности вопроса
+#_________________Создаем клавиатуру выбора сложности вопроса______________
 admin_kb_select_level = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text=LEXICON_RU['level_1'],
@@ -86,8 +82,7 @@ admin_kb_select_level = InlineKeyboardMarkup(
     ]
 )
 
-
-# Создаем клавиатуру для добавления или отмены
+# ___________Создаем клавиатуру для добавления или отмены____________________
 add_or_cancel = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text=LEXICON_RU['add'],
@@ -96,35 +91,31 @@ add_or_cancel = InlineKeyboardMarkup(
         [InlineKeyboardButton(text=LEXICON_RU['cancel'],
                               callback_data=f.CancelCallbackData().pack()),
          ]
-        ]
+    ]
 )
 
-# ------- Создаем игровую клавиатуру без использования билдера -------
+# --------------------- Создаем клавиатуры user -------------------------------------------------
 
-# Создаем кнопки игровой клавиатуры бронзовой лиги
-bn_delete_answer1 = KeyboardButton(text=LEXICON_RU['delete_answer'])
-bn_insurance = KeyboardButton(text=LEXICON_RU['insurance'])
-bn_mistake = KeyboardButton(text=LEXICON_RU['mistake'])
-bn_take_prize = KeyboardButton(text=LEXICON_RU['take_prize'])
-
-# Создаем клавиатуру с кнопками для бронзовой лиги
-game_kb_bronze = ReplyKeyboardMarkup(
-    keyboard=[[bn_delete_answer1],
-              [bn_insurance],
-              [bn_mistake],
-              [bn_take_prize]],
-    resize_keyboard=True)
-
-# Создаем кнопки игровой клавиатуры серебряной лиги
-bn_delete_answer2 = KeyboardButton(text=LEXICON_RU['delete_answer'])
-bn_insurance = KeyboardButton(text=LEXICON_RU['insurance'])
-bn_mistake = KeyboardButton(text=LEXICON_RU['mistake'])
-bn_take_prize = KeyboardButton(text=LEXICON_RU['take_prize'])
-
-# Создаем клавиатуру с кнопками для серебряной лиги
-game_kb_silver = ReplyKeyboardMarkup(
-    keyboard=[[bn_delete_answer2],
-              [bn_insurance],
-              [bn_mistake],
-              [bn_take_prize]],
-    resize_keyboard=True)
+# ____________Создаем кнопки главной игровой клавиатуры____________________
+game_kb = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text='A',
+                              callback_data=f.ACallbackData().pack()),
+         InlineKeyboardButton(text='B',
+                              callback_data=f.BCallbackData().pack()),
+         InlineKeyboardButton(text='C',
+                              callback_data=f.CCallbackData().pack()),
+         InlineKeyboardButton(text='D',
+                              callback_data=f.DCallbackData().pack())
+         ],
+        [InlineKeyboardButton(text=LEXICON_RU['delete_answer'],
+                              callback_data=f.DelAnswerCallbackData().pack()),
+         InlineKeyboardButton(text=LEXICON_RU['insurance'],
+                              callback_data=f.InsuranceCallbackData().pack()),
+         InlineKeyboardButton(text=LEXICON_RU['mistake'],
+                              callback_data=f.MistakeCallbackData().pack()),
+         InlineKeyboardButton(text=LEXICON_RU['take_prize'],
+                              callback_data=f.TakePrizeCallbackData().pack())
+         ]
+    ]
+)

@@ -3,17 +3,17 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart
 from aiogram.types import Message
 from aiogram.fsm.storage.redis import RedisStorage, Redis
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session
+from db.models import Users
+from db.models import SessionLocal
+from db.db_functions import add_user_to_db
 
-from config_data.config import Config, load_config, DbURL
+from config_data.config import Config, load_config
 from handlers import admin_handlers, user_handlers
 from keyboards.set_menu import set_main_menu
-from db.models import Base
 from lexicon.lexicon_ru import LEXICON_RU
 from keyboards.keyboards import admin_kb, main_kb
 
@@ -38,7 +38,7 @@ async def main():
     # Инициализируем бот и диспетчер
     bot = Bot(
         token=config.tg_bot.token,
-        default=DefaultBotProperties(parse_mode='MarkdownV2',
+        default=DefaultBotProperties(parse_mode='HTML',
                                      protect_content=False)
     )
 
@@ -51,7 +51,6 @@ async def main():
 
     await set_main_menu(bot)
 
-    # Этот хэндлер срабатывает на команду /start
     @dp.message(CommandStart())
     async def process_start_command(message: Message):
         if message.from_user.id in config.tg_bot.admin_ids:
@@ -59,6 +58,33 @@ async def main():
 
         else:
             await message.answer(text=LEXICON_RU['/start'], reply_markup=main_kb, parse_mode='HTML')
+            # Создаем сессию базы данных
+            session: Session = SessionLocal()
+
+            try:
+                # Проверяем, есть ли username (могут быть пользователи без него)
+                username = message.from_user.username if message.from_user.username else "----"
+
+                # Добавляем пользователя в базу
+                add_user_to_db(
+                    session=session,
+                    user_id=message.from_user.id,
+                    username=username,
+                    league=1,
+                    games=0,
+                    balance_silver_coins=500,
+                    balance_gold_coins=0,
+                    balance_rub=0,
+                    referrals=0
+                )
+            except Exception as e:
+                # Логируем ошибку, если что-то пошло не так
+                print(f"Ошибка при обработке команды /start: {e}")
+
+            finally:
+                # Закрываем сессию
+                session.close()
+
 
     # Регистриуем роутеры в диспетчере
     dp.include_router(user_handlers.router)
@@ -68,8 +94,7 @@ async def main():
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
-    # Создание таблиц
-    #Base.metadata.create_all(bind=engine)
+
 
 
 asyncio.run(main())

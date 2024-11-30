@@ -52,3 +52,37 @@ class AddCallbackData(CallbackData, prefix="add"):
 
 class CancelCallbackData(CallbackData, prefix="cancel"):
     pass
+
+
+class ACallbackData(CallbackData, prefix="A"):
+    pass
+
+
+class BCallbackData(CallbackData, prefix="B"):
+    pass
+
+
+class CCallbackData(CallbackData, prefix="C"):
+    pass
+
+
+class DCallbackData(CallbackData, prefix="D"):
+    pass
+
+
+class DelAnswerCallbackData(CallbackData, prefix="del_answer"):
+    pass
+
+
+class InsuranceCallbackData(CallbackData, prefix="insurance"):
+    pass
+
+
+class MistakeCallbackData(CallbackData, prefix="mistake"):
+    pass
+
+
+class TakePrizeCallbackData(CallbackData, prefix="take_prize"):
+    pass
+
+
