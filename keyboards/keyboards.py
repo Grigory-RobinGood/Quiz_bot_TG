@@ -96,7 +96,7 @@ add_or_cancel = InlineKeyboardMarkup(
 
 # --------------------- Создаем клавиатуры user -------------------------------------------------
 
-# ____________Создаем кнопки главной игровой клавиатуры____________________
+# ____________Создаем главную игровую клавиатуру____________________
 game_kb = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text='A',
@@ -116,6 +116,18 @@ game_kb = InlineKeyboardMarkup(
                               callback_data=f.MistakeCallbackData().pack()),
          InlineKeyboardButton(text=LEXICON_RU['take_prize'],
                               callback_data=f.TakePrizeCallbackData().pack())
+         ]
+    ]
+)
+
+# ____________Создаем клавиатуру запуска игры___________________
+start_game = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text=LEXICON_RU['start_game'],
+                              callback_data=f.StartGameCallbackData().pack()),
+         ],
+        [InlineKeyboardButton(text=LEXICON_RU['cancel'],
+                              callback_data=f.CancelGameCallbackData().pack()),
          ]
     ]
 )

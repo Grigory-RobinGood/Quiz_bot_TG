@@ -86,3 +86,9 @@ class TakePrizeCallbackData(CallbackData, prefix="take_prize"):
     pass
 
 
+class StartGameCallbackData(CallbackData, prefix="start_game"):
+    pass
+
+
+class CancelGameCallbackData(CallbackData, prefix="cancel_game"):
+    pass

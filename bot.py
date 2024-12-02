@@ -4,7 +4,7 @@ import logging
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.filters import CommandStart
-from aiogram.types import Message
+from aiogram.types import Message, ReplyKeyboardRemove
 from aiogram.fsm.storage.redis import RedisStorage, Redis
 from sqlalchemy.orm import Session
 from db.models import Users
@@ -58,6 +58,8 @@ async def main():
 
         else:
             await message.answer(text=LEXICON_RU['/start'], reply_markup=main_kb, parse_mode='HTML')
+
+
             # Создаем сессию базы данных
             session: Session = SessionLocal()
 
@@ -93,8 +95,5 @@ async def main():
     # Пропускаем накопившиеся апдейты и запускаем polling
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
-
-
-
 
 asyncio.run(main())
