@@ -1,3 +1,6 @@
+import random
+from typing import Tuple, List
+
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
@@ -131,3 +134,43 @@ start_game = InlineKeyboardMarkup(
          ]
     ]
 )
+
+
+# ___________Генерация инлайн-клавиатуры с вариантами ответов__________
+def generate_shuffled_keyboard(question_id: int, options: list[str]) -> tuple[InlineKeyboardMarkup, list[str]]:
+    shuffled_options = options.copy()
+    random.shuffle(shuffled_options)  # Перемешиваем варианты ответа
+    builder = InlineKeyboardBuilder()
+    for i, option in enumerate(shuffled_options, start=1):
+        builder.button(text=option, callback_data=f"answer:{question_id}:{i}")
+    return builder.as_markup(), shuffled_options
+
+
+# _____________Генерация игровой клавиатуры__________________
+def generate_game_keyboard(question_id, options, hints):
+    """
+    Генерирует клавиатуру с вариантами ответа (A, B, C, D) и подсказками.
+    """
+    keyboard = InlineKeyboardMarkup()
+
+
+    # Генерация вариантов ответа с буквами
+    letters = ['A', 'B', 'C', 'D']
+    for idx, option in enumerate(options):
+        keyboard.add(InlineKeyboardButton(
+            text=f"{letters[idx]}. {option}",
+            callback_data=f"answer:{question_id}:{idx + 1}"
+        ))
+
+    # Добавление подсказок
+    if hints:
+        hint_buttons = [
+            InlineKeyboardButton(
+                text=hint_text,
+                callback_data=f"hint:{hint_key}"  # Формат: hint:<ключ подсказки>
+            ) for hint_key, hint_text in hints.items()
+        ]
+        keyboard.row(*hint_buttons)
+
+    return keyboard
+

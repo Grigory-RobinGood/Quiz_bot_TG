@@ -4,24 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0c68072f-5812-4d07-bf64-758c8421e93c" name="Changes" comment="my first bot">
-      <change afterPath="$PROJECT_DIR$/.env.exemple" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/Stepik_test_bot.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/config_data/config.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/db/models.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/db/request" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/handlers/admin_handlers.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/handlers/user_handlers.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/keyboards/keyboards.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/keyboards/set_menu.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lexicon/lexicon_ru.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/services/admin_panel.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/services/services.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot.py" afterDir="false" />
+    <list default="true" id="0c68072f-5812-4d07-bf64-758c8421e93c" name="Changes" comment="Добавлена регистрация пользователей, настроена миграция">
+      <change beforePath="$PROJECT_DIR$/db/db_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/db/db_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/db/quiz_db.sqlite" beforeDir="false" afterPath="$PROJECT_DIR$/db/quiz_db.sqlite" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/handlers/user_handlers.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/user_handlers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/keyboards/keyboards.py" beforeDir="false" afterPath="$PROJECT_DIR$/keyboards/keyboards.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/services.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/services.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -34,6 +22,9 @@
         <option value="Python Script" />
       </list>
     </option>
+  </component>
+  <component name="Git.Merge.Settings">
+    <option name="BRANCH" value="bot_master" />
   </component>
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
@@ -51,7 +42,7 @@
 }</component>
   <component name="GithubPullRequestsUISettings">{
   &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/Grigory-RobinGood/Stepik_bot.git&quot;,
+    &quot;url&quot;: &quot;https://github.com/Grigory-RobinGood/Quiz_bot_TG.git&quot;,
     &quot;accountId&quot;: &quot;68f8a535-4b72-4297-9259-03543284f7f5&quot;
   }
 }</component>
@@ -68,11 +59,13 @@
   &quot;keyToString&quot;: {
     &quot;Python.bot.executor&quot;: &quot;Run&quot;,
     &quot;Python.config.executor&quot;: &quot;Run&quot;,
+    &quot;Python.db_functions.executor&quot;: &quot;Run&quot;,
     &quot;Python.lexicon_ru.executor&quot;: &quot;Run&quot;,
+    &quot;Python.models.executor&quot;: &quot;Run&quot;,
     &quot;Python.user_handlers.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;rock__paper__scissors__bot&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/MyBots/Stepik_test_bot&quot;
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/tests/pythonProject2&quot;
   }
 }</component>
   <component name="RunManager">
@@ -128,7 +121,71 @@
       <option name="project" value="LOCAL" />
       <updated>1728324853864</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="my first bot">
+      <option name="closed" value="true" />
+      <created>1732802089160</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1732802089160</updated>
+    </task>
+    <task id="LOCAL-00003" summary="my first bot">
+      <option name="closed" value="true" />
+      <created>1732802106031</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1732802106031</updated>
+    </task>
+    <task id="LOCAL-00004" summary="my first bot">
+      <option name="closed" value="true" />
+      <created>1732805024796</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1732805024797</updated>
+    </task>
+    <task id="LOCAL-00005" summary="Base">
+      <option name="closed" value="true" />
+      <created>1732819890094</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1732819890095</updated>
+    </task>
+    <task id="LOCAL-00006" summary="Base">
+      <option name="closed" value="true" />
+      <created>1732819933802</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1732819933802</updated>
+    </task>
+    <task id="LOCAL-00007" summary="Base">
+      <option name="closed" value="true" />
+      <created>1732896573229</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1732896573231</updated>
+    </task>
+    <task id="LOCAL-00008" summary="Добавлена регистрация пользователей, настроена миграция">
+      <option name="closed" value="true" />
+      <created>1732984697616</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1732984697617</updated>
+    </task>
+    <task id="LOCAL-00009" summary="Добавлена регистрация пользователей, настроена миграция">
+      <option name="closed" value="true" />
+      <created>1733158840580</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1733158840584</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -136,6 +193,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="my first bot" />
-    <option name="LAST_COMMIT_MESSAGE" value="my first bot" />
+    <MESSAGE value="Base" />
+    <MESSAGE value="Добавлена регистрация пользователей, настроена миграция" />
+    <option name="LAST_COMMIT_MESSAGE" value="Добавлена регистрация пользователей, настроена миграция" />
   </component>
 </project>
