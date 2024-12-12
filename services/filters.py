@@ -34,15 +34,15 @@ class GoldLeagueCallbackData(CallbackData, prefix="gold_league"):
     pass
 
 
-class Level1CallbackData(CallbackData, prefix="level_1"):
+class Level1CallbackData(CallbackData, prefix="Easy"):
     pass
 
 
-class Level2CallbackData(CallbackData, prefix="level_2"):
+class Level2CallbackData(CallbackData, prefix="Medium"):
     pass
 
 
-class Level3CallbackData(CallbackData, prefix="level_3"):
+class Level3CallbackData(CallbackData, prefix="Hard"):
     pass
 
 

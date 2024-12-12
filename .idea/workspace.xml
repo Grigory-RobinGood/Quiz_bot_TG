@@ -4,12 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0c68072f-5812-4d07-bf64-758c8421e93c" name="Changes" comment="Добавлена регистрация пользователей, настроена миграция">
+    <list default="true" id="0c68072f-5812-4d07-bf64-758c8421e93c" name="Changes" comment="база данных переделана на postgresql&#10;Исправлены функции базы данных">
+      <change afterPath="$PROJECT_DIR$/services/game.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/db/db_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/db/db_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/db/quiz_db.sqlite" beforeDir="false" afterPath="$PROJECT_DIR$/db/quiz_db.sqlite" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/user_handlers.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/user_handlers.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/keyboards/keyboards.py" beforeDir="false" afterPath="$PROJECT_DIR$/keyboards/keyboards.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/services.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/services.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/db/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/db/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/handlers/admin_handlers.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/admin_handlers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/filters.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/filters.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -185,7 +187,15 @@
       <option name="project" value="LOCAL" />
       <updated>1733158840584</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="база данных переделана на postgresql&#10;Исправлены функции базы данных">
+      <option name="closed" value="true" />
+      <created>1733591563146</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1733591563146</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -195,6 +205,7 @@
     <MESSAGE value="my first bot" />
     <MESSAGE value="Base" />
     <MESSAGE value="Добавлена регистрация пользователей, настроена миграция" />
-    <option name="LAST_COMMIT_MESSAGE" value="Добавлена регистрация пользователей, настроена миграция" />
+    <MESSAGE value="база данных переделана на postgresql&#10;Исправлены функции базы данных" />
+    <option name="LAST_COMMIT_MESSAGE" value="база данных переделана на postgresql&#10;Исправлены функции базы данных" />
   </component>
 </project>

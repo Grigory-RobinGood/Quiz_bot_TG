@@ -1,14 +1,36 @@
+import logging
 from sqlalchemy import BigInteger
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import func
+from sqlalchemy.exc import SQLAlchemyError
 
-from db.models import Question, User
+from db.models import Question, Users
+
+# Логирование
+logger = logging.getLogger(__name__)
 
 
-# ____________ Функция для добавления вопроса в базу данных _______________
 def add_question_to_db(session: Session, league: str, difficulty: str, question_text: str,
                        correct_answer: str, answer_2: str, answer_3: str, answer_4: str):
+    """
+    Добавляет новый вопрос в таблицу `questions`.
+
+    :param session: SQLAlchemy Session
+    :param league: Лига вопроса (Bronze, Silver, Gold)
+    :param difficulty: Сложность вопроса (Easy, Medium, Hard)
+    :param question_text: Текст вопроса
+    :param correct_answer: Правильный ответ
+    :param answer_2: Второй вариант ответа
+    :param answer_3: Третий вариант ответа
+    :param answer_4: Четвёртый вариант ответа
+    """
     try:
+        # Проверяем, существует ли вопрос с таким текстом
+        existing_question = session.query(Question).filter_by(question_text=question_text).first()
+        if existing_question:
+            logger.warning("Вопрос с таким текстом уже существует: %s", question_text)
+            return "Вопрос уже существует"
+
         # Создаем объект вопроса
         new_question = Question(
             league=league,
@@ -20,50 +42,49 @@ def add_question_to_db(session: Session, league: str, difficulty: str, question_
             answer_4=answer_4
         )
 
-        # Добавляем в сессию
+        # Добавляем в сессию и коммитим
         session.add(new_question)
-
-        # Фиксируем изменения в базе
         session.commit()
+        logger.info("Вопрос успешно добавлен: %s", question_text)
+        return "Вопрос успешно добавлен"
 
-        print("Вопрос успешно добавлен в базу данных.")
-
-    except Exception as e:
-        session.rollback()  # Откатываем изменения в случае ошибки
-        print(f"Ошибка при добавлении вопроса в базу данных: {e}")
-
-    finally:
-        session.close()  # Закрываем сессию
+    except SQLAlchemyError as e:
+        # Откатываем изменения в случае ошибки
+        session.rollback()
+        logger.error("Ошибка при добавлении вопроса: %s", e)
+        return f"Ошибка: {e}"
 
 
 # _______________ Функция для добавления пользователя в базу данных _______________
 def add_user_to_db(session: Session, username: str):
+    """
+    Добавляет нового пользователя в таблицу `users`, если пользователь с таким именем ещё не существует.
+
+    :param session: SQLAlchemy Session
+    :param username: Имя пользователя (уникальное значение)
+    :return: Строка с результатом операции
+    """
     try:
-        # Проверяем, есть ли пользователь в базе
-        existing_user = session.query(User).filter(User.username == username).first()
+        # Проверяем, есть ли пользователь с таким именем
+        existing_user = session.query(Users).filter_by(username=username).first()
         if existing_user:
-            print(f"Пользователь с username {username} уже существует.")
-            return
+            logger.warning("Пользователь с именем %s уже существует.", username)
+            return f"Пользователь с username '{username}' уже существует."
 
         # Создаем нового пользователя
-        new_user = User(
-            username=username
-        )
+        new_user = Users(username=username)
 
-        # Добавляем пользователя в сессию
+        # Добавляем в сессию и сохраняем изменения
         session.add(new_user)
-
-        # Фиксируем изменения
         session.commit()
+        logger.info("Новый пользователь добавлен: %s", username)
+        return f"Пользователь '{username}' успешно добавлен."
 
-        print("Пользователь успешно добавлен.")
-
-    except Exception as e:
-        session.rollback()  # Откатываем изменения в случае ошибки
-        print(f"Ошибка при добавлении пользователя в базу данных: {e}")
-
-    finally:
-        session.close()  # Закрываем сессию
+    except SQLAlchemyError as e:
+        # Откатываем изменения в случае ошибки
+        session.rollback()
+        logger.error("Ошибка при добавлении пользователя: %s", e)
+        return f"Ошибка: {e}"
 
 
 # __________ Получение вопросов из базы (в случайном порядке) _______________

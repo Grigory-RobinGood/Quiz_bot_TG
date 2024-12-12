@@ -17,7 +17,7 @@ router = Router()
 session = SessionLocal()
 
 
-# ------------Обрабатываем нажатие кнопки "добавить вопрос"---------------
+# --------------------Обрабатываем нажатие кнопки "добавить вопрос"------------------------------------------
 @router.callback_query(f.AddQuestionCallbackData.filter())
 async def add_question(call: CallbackQuery, state: FSMContext):
     # Ответ пользователю
@@ -26,7 +26,6 @@ async def add_question(call: CallbackQuery, state: FSMContext):
     await state.set_state(AddQuestionState.waiting_for_league)  # Устанавливаем состояние для добавления вопроса
 
 
-#  Разобраться с коллбэк дата
 #__Выбираем Лигу в которую хотим добавить вопрос__
 @router.callback_query(AddQuestionState.waiting_for_league)
 async def send_league(call: CallbackQuery, state: FSMContext):
@@ -124,8 +123,8 @@ async def check_and_add_question(call: CallbackQuery, state: FSMContext):
         add_question_to_db(
             session=session,
             league=league,
-            level=level,
-            question=question,
+            difficulty=level,
+            question_text=question,
             correct_answer=correct_answer,
             answer_2=answer_2,
             answer_3=answer_3,
@@ -144,3 +143,7 @@ async def check_and_add_question(call: CallbackQuery, state: FSMContext):
 
         # Закрываем уведомление
     await call.answer()
+
+
+
+

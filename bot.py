@@ -7,10 +7,10 @@ from aiogram.filters import CommandStart
 from aiogram.types import Message, ReplyKeyboardRemove
 from aiogram.fsm.storage.redis import RedisStorage, Redis
 from sqlalchemy.orm import Session
-from db.models import Users
+from sqlalchemy.exc import SQLAlchemyError
+
 from db.models import SessionLocal
 from db.db_functions import add_user_to_db
-
 from config_data.config import Config, load_config
 from handlers import admin_handlers, user_handlers
 from keyboards.set_menu import set_main_menu
@@ -40,9 +40,9 @@ async def main():
         token=config.tg_bot.token,
         default=DefaultBotProperties(parse_mode='HTML',
                                      protect_content=False)
-    )
+        )
 
-    # db_url = config.database.url  # Убедитесь, что путь совпадает с вашей конфигурацией
+
     # engine = create_engine(db_url, echo=True)
 
     redis = Redis(host='localhost')
@@ -53,39 +53,42 @@ async def main():
 
     @dp.message(CommandStart())
     async def process_start_command(message: Message):
+        """
+        Обработчик команды /start. Добавляет нового пользователя в базу данных, если его там ещё нет.
+        """
+        # Проверяем, является ли пользователь администратором
         if message.from_user.id in config.tg_bot.admin_ids:
             await message.answer(text='Вы вошли в админ панель', reply_markup=admin_kb)
+            return
 
-        else:
-            await message.answer(text=LEXICON_RU['/start'], reply_markup=main_kb, parse_mode='HTML')
+        # Приветствие для обычных пользователей
+        await message.answer(text=LEXICON_RU['/start'], reply_markup=main_kb, parse_mode='HTML')
 
+        # Создаем сессию базы данных
+        session: Session = SessionLocal()
 
-            # Создаем сессию базы данных
-            session: Session = SessionLocal()
+        try:
+            # Получаем username пользователя или устанавливаем значение по умолчанию
+            username = message.from_user.username or "unknown_user"
 
-            try:
-                # Проверяем, есть ли username (могут быть пользователи без него)
-                username = message.from_user.username if message.from_user.username else "----"
+            # Добавляем пользователя в базу данных
+            result = add_user_to_db(session=session, username=username)
 
-                # Добавляем пользователя в базу
-                add_user_to_db(
-                    session=session,
-                    user_id=message.from_user.id,
-                    username=username,
-                    league=1,
-                    games=0,
-                    balance_silver_coins=500,
-                    balance_gold_coins=0,
-                    balance_rub=0,
-                    referrals=0
-                )
-            except Exception as e:
-                # Логируем ошибку, если что-то пошло не так
-                print(f"Ошибка при обработке команды /start: {e}")
+            # Логируем и отправляем сообщение пользователю, если необходимо
+            logger.info("Результат добавления пользователя: %s", result)
 
-            finally:
-                # Закрываем сессию
-                session.close()
+        except SQLAlchemyError as e:
+            # Логируем ошибки базы данных
+            logger.error("Ошибка при добавлении пользователя в базу данных: %s", e)
+            await message.answer("Произошла ошибка при регистрации. Попробуйте позже.")
+
+        except Exception as e:
+            # Логируем другие возможные ошибки
+            logger.error("Ошибка при обработке команды /start: %s", e)
+
+        finally:
+            # Закрываем сессию базы данных
+            session.close()
 
 
     # Регистриуем роутеры в диспетчере
