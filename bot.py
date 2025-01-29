@@ -4,18 +4,18 @@ import logging
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.filters import CommandStart
-from aiogram.types import Message, ReplyKeyboardRemove
+from aiogram.types import Message
 from aiogram.fsm.storage.redis import RedisStorage, Redis
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.future import select
 
-from db.models import SessionLocal
-from db.db_functions import add_user_to_db
+from db.models import AsyncSessionLocal, Users  # Импортируем вашу модель Users
 from config_data.config import Config, load_config
-from handlers import admin_handlers, user_handlers
+from handlers import admin_handlers, user_handlers, game_handlers
 from keyboards.set_menu import set_main_menu
 from lexicon.lexicon_ru import LEXICON_RU
 from keyboards.keyboards import admin_kb, main_kb
+from services import game
 
 # Инициализируем логгер
 logger = logging.getLogger(__name__)
@@ -40,10 +40,7 @@ async def main():
         token=config.tg_bot.token,
         default=DefaultBotProperties(parse_mode='HTML',
                                      protect_content=False)
-        )
-
-
-    # engine = create_engine(db_url, echo=True)
+    )
 
     redis = Redis(host='localhost')
     storage = RedisStorage(redis=redis)
@@ -65,35 +62,39 @@ async def main():
         await message.answer(text=LEXICON_RU['/start'], reply_markup=main_kb, parse_mode='HTML')
 
         # Создаем сессию базы данных
-        session: Session = SessionLocal()
+        async with AsyncSessionLocal() as session:
+            try:
+                # Получаем user_id и username пользователя или устанавливаем значение по умолчанию
+                user_id = message.from_user.id
+                username = message.from_user.username or "unknown_user"
 
-        try:
-            # Получаем username пользователя или устанавливаем значение по умолчанию
-            username = message.from_user.username or "unknown_user"
+                # Проверяем, есть ли пользователь в базе
+                result = await session.execute(select(Users).filter_by(user_id=user_id))
+                user = result.scalars().first()
 
-            # Добавляем пользователя в базу данных
-            result = add_user_to_db(session=session, username=username)
+                if not user:
+                    # Если пользователя нет, добавляем его в базу данных
+                    new_user = Users(user_id=user_id, username=username)
+                    session.add(new_user)
+                    await session.commit()
+                    logger.info("Пользователь успешно добавлен: %s", username)
+                else:
+                    logger.info("Пользователь уже существует: %s", username)
 
-            # Логируем и отправляем сообщение пользователю, если необходимо
-            logger.info("Результат добавления пользователя: %s", result)
+            except SQLAlchemyError as e:
+                # Логируем ошибки базы данных
+                logger.error("Ошибка при добавлении пользователя в базу данных: %s", e)
+                await message.answer("Произошла ошибка при регистрации. Попробуйте позже.")
 
-        except SQLAlchemyError as e:
-            # Логируем ошибки базы данных
-            logger.error("Ошибка при добавлении пользователя в базу данных: %s", e)
-            await message.answer("Произошла ошибка при регистрации. Попробуйте позже.")
-
-        except Exception as e:
-            # Логируем другие возможные ошибки
-            logger.error("Ошибка при обработке команды /start: %s", e)
-
-        finally:
-            # Закрываем сессию базы данных
-            session.close()
-
+            except Exception as e:
+                # Логируем другие возможные ошибки
+                logger.error("Ошибка при обработке команды /start: %s", e)
 
     # Регистриуем роутеры в диспетчере
     dp.include_router(user_handlers.router)
     dp.include_router(admin_handlers.router)
+    dp.include_router(game_handlers.router)
+    dp.include_router(game.router)
 
     # Пропускаем накопившиеся апдейты и запускаем polling
     await bot.delete_webhook(drop_pending_updates=True)

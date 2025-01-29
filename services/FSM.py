@@ -14,3 +14,11 @@ class AddQuestionState(StatesGroup):
     add_question = State()
     check_and_add_question = State()
 
+
+class ProcessGameState(StatesGroup):
+    waiting_for_question = State()  # Ожидание начала вопроса
+    waiting_for_answer = State()  # Ожидание ответа от пользователя
+    waiting_for_hint = State()  # Ожидание выбора подсказки
+    game_finished = State()  # Завершение игры
+
+

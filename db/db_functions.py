@@ -1,5 +1,6 @@
 import logging
-from sqlalchemy import BigInteger
+from sqlalchemy import BigInteger, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import func
 from sqlalchemy.exc import SQLAlchemyError
@@ -56,23 +57,24 @@ def add_question_to_db(session: Session, league: str, difficulty: str, question_
 
 
 # _______________ Функция для добавления пользователя в базу данных _______________
-def add_user_to_db(session: Session, username: str):
+def add_user_to_db(session: Session, user_id: int, username: str):
     """
     Добавляет нового пользователя в таблицу `users`, если пользователь с таким именем ещё не существует.
 
     :param session: SQLAlchemy Session
+    :param user_id: user_id пользователя (уникальное  значение)
     :param username: Имя пользователя (уникальное значение)
     :return: Строка с результатом операции
     """
     try:
-        # Проверяем, есть ли пользователь с таким именем
-        existing_user = session.query(Users).filter_by(username=username).first()
+        # Проверяем, есть ли пользователь с таким user_id
+        existing_user = session.query(Users).filter_by(user_id=user_id).first()
         if existing_user:
-            logger.warning("Пользователь с именем %s уже существует.", username)
-            return f"Пользователь с username '{username}' уже существует."
+            logger.info("Пользователь с id %s уже существует.", user_id)
+            return f"Пользователь с id '{user_id}' уже существует."
 
         # Создаем нового пользователя
-        new_user = Users(username=username)
+        new_user = Users(user_id=user_id, username=username)
 
         # Добавляем в сессию и сохраняем изменения
         session.add(new_user)
@@ -88,11 +90,68 @@ def add_user_to_db(session: Session, username: str):
 
 
 # __________ Получение вопросов из базы (в случайном порядке) _______________
-def get_questions(session: Session, league: str, difficulty: str, limit: int):
-    return (
-        session.query(Question)
-        .filter_by(league=league, difficulty=difficulty)
-        .order_by(func.random())  # Случайный порядок
-        .limit(limit)
-        .all()
-    )
+async def get_question(league: str, session: AsyncSession):
+    """
+    Получение списка вопросов для заданной лиги.
+
+    Args:
+        league (str): Лига ("Bronze", "Silver", "Gold").
+        session (AsyncSession): Асинхронная сессия SQLAlchemy.
+
+    Returns:
+        list: Список вопросов.
+    """
+    questions = []
+    for difficulty in ["Easy", "Medium", "Hard"]:
+        result = await session.execute(
+            select(Question)
+            .where(Question.league == league, Question.difficulty == difficulty)
+            .order_by(func.random())
+            .limit(5)
+        )
+        questions.extend(result.scalars().all())
+
+    return [
+        {
+            "id": question.id,
+            "text": question.question_text,
+            "answers": [
+                question.correct_answer,
+                question.answer_2,
+                question.answer_3,
+                question.answer_4,
+            ],
+            "correct_answer": question.correct_answer,
+            "difficulty": question.difficulty,
+            "score": 10 if question.difficulty == "Easy" else 20 if question.difficulty == "Medium" else 30,
+        }
+        for question in questions
+    ]
+
+
+async def update_user_balance(user_id: int, amount: int, currency: str, session: AsyncSession):
+    """
+    Обновление баланса пользователя.
+
+    Args:
+        user_id (int): ID пользователя.
+        amount (int): Сумма для добавления или снятия.
+        currency (str): Тип валюты ("silver" или "gold").
+        session (AsyncSession): Асинхронная сессия SQLAlchemy.
+
+    Returns:
+        bool: True, если успешно, иначе False.
+    """
+    result = await session.execute(select(Users).where(Users.user_id == user_id))
+    user = result.scalars().first()
+
+    if not user:
+        return False
+
+    if currency == "silver":
+        user.balance_silver += amount
+    elif currency == "gold":
+        user.balance_gold += amount
+
+    await session.commit()
+    return True

@@ -4,13 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0c68072f-5812-4d07-bf64-758c8421e93c" name="Changes" comment="база данных переделана на postgresql&#10;Исправлены функции базы данных">
-      <change afterPath="$PROJECT_DIR$/services/game.py" afterDir="false" />
+    <list default="true" id="0c68072f-5812-4d07-bf64-758c8421e93c" name="Changes" comment="добавлен код процесса игры (файл game.py)">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/db/db_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/db/db_functions.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/db/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/db/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/admin_handlers.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/admin_handlers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/handlers/user_handlers.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/user_handlers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/keyboards/keyboards.py" beforeDir="false" afterPath="$PROJECT_DIR$/keyboards/keyboards.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/filters.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/filters.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -57,19 +56,19 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.bot.executor&quot;: &quot;Run&quot;,
-    &quot;Python.config.executor&quot;: &quot;Run&quot;,
-    &quot;Python.db_functions.executor&quot;: &quot;Run&quot;,
-    &quot;Python.lexicon_ru.executor&quot;: &quot;Run&quot;,
-    &quot;Python.models.executor&quot;: &quot;Run&quot;,
-    &quot;Python.user_handlers.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/tests/pythonProject2&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.bot.executor": "Run",
+    "Python.config.executor": "Run",
+    "Python.db_functions.executor": "Run",
+    "Python.lexicon_ru.executor": "Run",
+    "Python.models.executor": "Run",
+    "Python.user_handlers.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "D:/UrbanUnv/Python/module16_FastAPI"
   }
-}</component>
+}]]></component>
   <component name="RunManager">
     <configuration name="bot" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="Stepik_test_bot" />
@@ -195,7 +194,15 @@
       <option name="project" value="LOCAL" />
       <updated>1733591563146</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="добавлен код процесса игры (файл game.py)">
+      <option name="closed" value="true" />
+      <created>1734015574119</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1734015574119</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -206,6 +213,7 @@
     <MESSAGE value="Base" />
     <MESSAGE value="Добавлена регистрация пользователей, настроена миграция" />
     <MESSAGE value="база данных переделана на postgresql&#10;Исправлены функции базы данных" />
-    <option name="LAST_COMMIT_MESSAGE" value="база данных переделана на postgresql&#10;Исправлены функции базы данных" />
+    <MESSAGE value="добавлен код процесса игры (файл game.py)" />
+    <option name="LAST_COMMIT_MESSAGE" value="добавлен код процесса игры (файл game.py)" />
   </component>
 </project>

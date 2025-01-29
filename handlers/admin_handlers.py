@@ -11,10 +11,10 @@ from services.FSM import AddQuestionState
 from lexicon.lexicon_ru import LEXICON_RU
 from keyboards.keyboards import admin_kb_league, admin_kb_select_level, add_or_cancel, admin_kb
 from services import filters as f
-from db.models import SessionLocal
+from db.models import AsyncSessionLocal
 
 router = Router()
-session = SessionLocal()
+session = AsyncSessionLocal()
 
 
 # --------------------Обрабатываем нажатие кнопки "добавить вопрос"------------------------------------------

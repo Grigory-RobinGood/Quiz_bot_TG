@@ -1,5 +1,18 @@
+import asyncio
+import logging
+from asyncio import timeout
+from logging import Filter
+
+from aiogram import Dispatcher, Router
 from aiogram.types import CallbackQuery
 from aiogram.filters.callback_data import CallbackData
+from aiogram.filters import BaseFilter
+from contextlib import contextmanager
+from typing import Optional
+
+logging.basicConfig(level=logging.INFO)
+
+
 
 
 class AddQuestionCallbackData(CallbackData, prefix="add_question"):
@@ -86,9 +99,64 @@ class TakePrizeCallbackData(CallbackData, prefix="take_prize"):
     pass
 
 
-class StartGameCallbackData(CallbackData, prefix="start_game"):
-    pass
-
-
 class CancelGameCallbackData(CallbackData, prefix="cancel_game"):
     pass
+
+
+class UserRateCallbackData(CallbackData, prefix="user_rate"):
+    pass
+
+
+class MagazineCallbackData(CallbackData, prefix="magazine"):
+    pass
+
+
+class EarnCoinsCallbackData(CallbackData, prefix="earn_coins"):
+    pass
+
+
+class BalanceCallbackData(CallbackData, prefix="balance"):
+    pass
+
+
+class ExchangeCallbackData(CallbackData, prefix="exchange"):
+    pass
+
+
+class AddBalanceCallbackData(CallbackData, prefix="add_balance"):
+    pass
+
+
+class OutBalanceCallbackData(CallbackData, prefix="out_balance"):
+    pass
+
+
+class SuggestQuestionCallbackData(CallbackData, prefix="suggest_question"):
+    pass
+
+
+class SubscribeCallbackData(CallbackData, prefix="subscribe"):
+    pass
+
+
+class AccountCallbackData(CallbackData, prefix="account"):
+    pass
+
+
+class HelpCallbackData(CallbackData, prefix="help"):
+    pass
+
+
+class StartGameCallbackData(CallbackData, prefix="start_game"):
+    league: str
+
+
+#Фукция ожидания ответа от пользователя
+class CallbackQueryFilter(BaseFilter):
+    def __init__(self, user_id: int):
+        self.user_id = user_id
+
+    async def __call__(self, callback_query: CallbackQuery) -> bool:
+        return callback_query.from_user.id == self.user_id
+
+
