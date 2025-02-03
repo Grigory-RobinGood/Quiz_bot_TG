@@ -15,7 +15,9 @@ from handlers import admin_handlers, user_handlers, game_handlers
 from keyboards.set_menu import set_main_menu
 from lexicon.lexicon_ru import LEXICON_RU
 from keyboards.keyboards import admin_kb, main_kb
+from middleware.game_mdwr import DatabaseMiddleware
 from services import game
+from db.models import async_session_maker
 
 # Инициализируем логгер
 logger = logging.getLogger(__name__)
@@ -95,6 +97,10 @@ async def main():
     dp.include_router(admin_handlers.router)
     dp.include_router(game_handlers.router)
     dp.include_router(game.router)
+
+    #Регистрируем middleware
+    dp.update.middleware(DatabaseMiddleware(async_session_maker))
+
 
     # Пропускаем накопившиеся апдейты и запускаем polling
     await bot.delete_webhook(drop_pending_updates=True)

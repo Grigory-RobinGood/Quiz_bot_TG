@@ -3,7 +3,7 @@ import logging
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Boolean, Float, DateTime, Enum, Table, func
 )
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import relationship, declarative_base, sessionmaker
 from enum import Enum as PyEnum
 from config_data.config import Config, load_config
@@ -26,6 +26,9 @@ if not DATABASE_URL:
 # Создаем асинхронный движок и сессию
 engine = create_async_engine(DATABASE_URL, echo=True)
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+# 🔹 Создаем фабрику сессий
+async_session_maker = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 Base = declarative_base()
 

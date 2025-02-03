@@ -1,5 +1,5 @@
 import logging
-from sqlalchemy import BigInteger, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import func
@@ -129,6 +129,7 @@ async def get_question(league: str, session: AsyncSession):
     ]
 
 
+#______Обновление баланса пользователя после игры____________
 async def update_user_balance(user_id: int, amount: int, currency: str, session: AsyncSession):
     """
     Обновление баланса пользователя.

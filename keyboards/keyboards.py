@@ -2,15 +2,13 @@ import random
 import logging
 
 from string import ascii_uppercase
-from typing import Tuple, List
 
-from aiogram.filters.callback_data import CallbackData
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from lexicon.lexicon_ru import LEXICON_RU, LEXICON_COMMANDS_RU
+from lexicon.lexicon_ru import LEXICON_RU
 from services import filters as f
-from services.filters import StartGameCallbackData, AccountCallbackData, HelpCallbackData
+from services.filters import StartGameCallbackData
 
 logger = logging.getLogger(__name__)
 
@@ -107,43 +105,16 @@ main_kb = InlineKeyboardMarkup(
         [
             InlineKeyboardButton(
                 text="Аккаунт",
-                callback_data="account"  # Если у вас есть CallbackData для аккаунта, замените строку на её pack
+                callback_data=f.AccountCallbackData().pack()
             ),
             InlineKeyboardButton(
                 text="Справка",
-                callback_data="help"  # Если есть CallbackData для справки, аналогично замените
+                callback_data=f.HelpCallbackData().pack()  # Если есть CallbackData для справки, аналогично замените
             ),
         ]
     ]
 )
 
-# ____________Создаем клавиатуру запуска игры___________________
-# start_game = InlineKeyboardMarkup(
-#     inline_keyboard=[
-#         [InlineKeyboardButton(text=LEXICON_RU['start_game'],
-#                               callback_data=f.StartGameCallbackData().pack()),
-#          ],
-#         [InlineKeyboardButton(text=LEXICON_RU['cancel'],
-#                               callback_data=f.CancelGameCallbackData().pack()),
-#          ]
-#     ]
-# )
-# bronze_league = KeyboardButton(text=LEXICON_RU['bronze_league'])
-# silver_league = KeyboardButton(text=LEXICON_RU['silver_league'])
-# gold_league = KeyboardButton(text=LEXICON_RU['gold_league'])
-# account = KeyboardButton(text=LEXICON_RU['account'])
-# suggest_question = KeyboardButton(text=LEXICON_RU['suggest_question'])
-# balance = KeyboardButton(text=LEXICON_RU['balance'])
-# bn_help = KeyboardButton(text=LEXICON_RU['bn_help'])
-#
-# main_kb = ReplyKeyboardMarkup(
-#     keyboard=[
-#         [bronze_league, silver_league, gold_league],  # Первая строка
-#         [account, suggest_question],  # Вторая строка
-#         [balance, bn_help]  # Третья строка
-#     ],
-#     resize_keyboard=True  # Уменьшает кнопки
-# )
 
 # ____________Создаем инлайн клавиатуру для меню аккаунт____________
 account_kb = InlineKeyboardMarkup(

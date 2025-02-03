@@ -1,15 +1,15 @@
 import random
 import logging
-import asyncio
 
 from aiogram import Router
+from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from sqlalchemy.sql.expression import func
 from sqlalchemy.future import select
 from sqlalchemy.exc import SQLAlchemyError
 
 from db.models import Users, Game, Question
-from handlers.game_handlers import wait_for_callback_query
+from services.FSM import ProcessGameState
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,26 @@ SCORE_TABLE = [
 ]
 
 
-async def start_game(session, user_id: int, league: str, send_message, router):
+def question_to_dict(question: Question) -> dict:
+    """
+    Преобразует объект Question в словарь.
+
+    Args:
+        question (Question): Объект вопроса.
+
+    Returns:
+        dict: Словарь с данными вопроса.
+    """
+    return {
+        "id": question.id,
+        "question_text": question.question_text,
+        "correct_answer": question.correct_answer,
+        "incorrect_answers": [question.answer_2, question.answer_3, question.answer_4],
+        "score": SCORE_TABLE[0]  # Пример, добавьте логику для определения баллов
+    }
+
+
+async def start_game(session, user_id: int, league: str, send_message, router, state: FSMContext):
     """
     Запуск игры для пользователя.
 
@@ -39,9 +58,7 @@ async def start_game(session, user_id: int, league: str, send_message, router):
         league (str): Лига игры ('Bronze', 'Silver', 'Gold').
         send_message (callable): Функция для отправки сообщений пользователю.
         router (Router): Router для обработки временных callback-хендлеров.
-
-    Returns:
-        None
+        state (FSMContext): Контекст состояния.
     """
     try:
         # Проверяем, существует ли пользователь
@@ -97,7 +114,7 @@ async def start_game(session, user_id: int, league: str, send_message, router):
                 .order_by(func.random())
                 .limit(5)
             )
-            questions += result.scalars().all()
+            questions += [question_to_dict(q) for q in result.scalars().all()]  # Преобразуем вопросы в словари
 
         if len(questions) < len(SCORE_TABLE):
             await send_message("В базе недостаточно вопросов для игры.")
@@ -113,115 +130,15 @@ async def start_game(session, user_id: int, league: str, send_message, router):
         guaranteed_score = 0
         hints_used = {"remove_two": False, "take_money": False, "insure": False}
 
-        for idx, question in enumerate(questions, 1):
-            answers = [
-                question.correct_answer,
-                question.answer_2,
-                question.answer_3,
-                question.answer_4
-            ]
-            random.shuffle(answers)
-            hints = {
-                "hint_insure": "Застраховать сумму",
-                "hint_remove_two": "Убрать два ответа",
-                "hint_take_money": "Забрать деньги"
-            }
+        # Инициализация состояния
+        await state.update_data(
+            questions=questions,
+            current_score=current_score,
+            hints_used=hints_used
+        )
 
-            # Создаем кнопки с буквами и подсказками
-            answer_buttons = [
-                InlineKeyboardButton(text="A", callback_data=f"answer:{question.id}:0"),
-                InlineKeyboardButton(text="B", callback_data=f"answer:{question.id}:1"),
-                InlineKeyboardButton(text="C", callback_data=f"answer:{question.id}:2"),
-                InlineKeyboardButton(text="D", callback_data=f"answer:{question.id}:3"),
-            ]
-
-            hint_buttons = [
-                InlineKeyboardButton(text="\uD83D\uDCB8 Застраховать сумму", callback_data=f"hint:hint_insure"),
-                InlineKeyboardButton(text="\u274C Убрать два неправильных ответа", callback_data=f"hint:hint_remove_two"),
-                InlineKeyboardButton(text="\uD83D\uDCB3 Забрать выигрыш", callback_data=f"hint:hint_take_money"),
-            ]
-
-            keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                answer_buttons[:2],
-                answer_buttons[2:],
-                hint_buttons
-            ])
-
-            # Отправляем сообщение с вопросом и ответами
-            answers_text = "\n".join([
-                f"A) {answers[0]}",
-                f"B) {answers[1]}",
-                f"C) {answers[2]}",
-                f"D) {answers[3]}"
-            ])
-
-            await send_message(
-                f"Вопрос {idx}: {question.question_text}\n\n{answers_text}",
-                reply_markup=keyboard
-            )
-
-            try:
-                callback_query = await wait_for_callback_query(user_id)
-                if callback_query is None:
-                    await send_message("Время вышло! Игра завершена.")
-                    break
-
-                logger.info(f"Callback data: {callback_query.data}")  # Логируем данные callback_query
-                user_answer = callback_query.data.split(":")
-            except Exception as e:
-                logger.error(f"Ошибка при обработке callback_query: {e}")
-                await send_message("Произошла ошибка. Попробуйте снова.")
-                break
-
-            if user_answer[0] == "hint":
-                hint_key = user_answer[1]
-                if hint_key == "hint_insure" and not hints_used["insure"]:
-                    hints_used["insure"] = True
-                    guaranteed_score = current_score
-                    await send_message(f"Вы застраховали сумму: {guaranteed_score} баллов.")
-                elif hint_key == "hint_remove_two" and not hints_used["remove_two"]:
-                    hints_used["remove_two"] = True
-                    wrong_answers = [ans for ans in answers if ans != question.correct_answer]
-                    random.shuffle(wrong_answers)
-                    updated_answers = [question.correct_answer, wrong_answers[0]]
-                    random.shuffle(updated_answers)
-                    await send_message(
-                        f"Подсказка! Выберите правильный ответ:\n"
-                        f"1) {updated_answers[0]}\n"
-                        f"2) {updated_answers[1]}"
-                    )
-                elif hint_key == "hint_take_money" and not hints_used["take_money"]:
-                    hints_used["take_money"] = True
-                    if league_config["currency"] == "silver":
-                        user.balance_silver += current_score
-                    elif league_config["currency"] == "gold":
-                        user.balance_gold += current_score
-                    await session.commit()
-                    await send_message(f"Вы забрали сумму: {current_score} баллов. Игра завершена.")
-                    break
-                else:
-                    await send_message("Эта подсказка уже использована.")
-                continue
-
-            try:
-                answer_index = int(user_answer[2])
-                if answers[answer_index] == question.correct_answer:
-                    current_score += SCORE_TABLE[idx - 1]
-                    await send_message(f"Правильно! Ваши баллы: {current_score}")
-                else:
-                    await send_message(f"Неправильно. Правильный ответ: {question.correct_answer}")
-                    break
-            except (ValueError, IndexError):
-                await send_message("Некорректный ответ. Попробуйте снова.")
-
-        new_game.score = current_score
-        if league_config["currency"] == "silver":
-            user.balance_silver += guaranteed_score
-        elif league_config["currency"] == "gold":
-            user.balance_gold += guaranteed_score
-        await session.commit()
-
-        await send_message(f"Игра завершена. Ваши баллы: {current_score}")
+        # Отправляем первый вопрос
+        await send_next_question(send_message, state)
 
     except SQLAlchemyError as e:
         await session.rollback()
@@ -265,3 +182,68 @@ def filter_answers(correct_answer: str, answers: list) -> list:
     if len(incorrect_answers) > 1:
         incorrect_answers = random.sample(incorrect_answers, 1)
     return [correct_answer] + incorrect_answers
+
+
+async def send_next_question(send_message, state: FSMContext, success_message: str = None):
+    """
+    Отправляет следующий вопрос пользователю.
+
+    Args:
+        send_message (callable): Функция для отправки сообщений.
+        state (FSMContext): Контекст состояния.
+        success_message (str, optional): Сообщение о правильном ответе.
+    """
+    data = await state.get_data()
+    questions = data.get("questions", [])
+    question_index = data.get("question_index", 0)
+
+    # Проверяем, остались ли вопросы
+    if not questions:
+        current_score = data.get("current_score", 0)
+        await send_message(f"Игра завершена! Ваш итоговый счёт: {current_score}.")
+        await state.clear()
+        return
+
+    # Если есть success_message, сначала отправляем его
+    if success_message:
+        await send_message(success_message)
+
+    # Берём следующий вопрос
+    current_question = questions.pop(0)
+    correct_answer = current_question["correct_answer"]
+    incorrect_answers = current_question["incorrect_answers"]
+    answers = [correct_answer] + incorrect_answers
+    random.shuffle(answers)  # Перемешиваем ответы
+
+    # Сохраняем данные в состоянии
+    await state.update_data(
+        questions=questions,
+        current_question=current_question,
+        answers=answers,
+        question_index=question_index,
+    )
+
+    # Создаём клавиатуру с вариантами ответов
+    answer_buttons = [
+        InlineKeyboardButton(text="A", callback_data=f"answer:{current_question['id']}:0"),
+        InlineKeyboardButton(text="B", callback_data=f"answer:{current_question['id']}:1"),
+        InlineKeyboardButton(text="C", callback_data=f"answer:{current_question['id']}:2"),
+        InlineKeyboardButton(text="D", callback_data=f"answer:{current_question['id']}:3"),
+    ]
+    hint_buttons = [
+        InlineKeyboardButton(text="\uD83D\uDCB8 Застраховать сумму", callback_data=f"hint:hint_insure"),
+        InlineKeyboardButton(text="\u274C Убрать два неправильных ответа", callback_data=f"hint:hint_remove_two"),
+        InlineKeyboardButton(text="\uD83D\uDCB3 Забрать выигрыш", callback_data=f"hint:hint_take_money"),
+    ]
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[answer_buttons[:2], answer_buttons[2:], hint_buttons])
+
+    # Отправляем вопрос пользователю
+    await send_message(
+        f"Вопрос: {current_question['question_text']}\n\n"
+        f"A) {answers[0]}\n"
+        f"B) {answers[1]}\n"
+        f"C) {answers[2]}\n"
+        f"D) {answers[3]}",
+        reply_markup=keyboard
+    )
+    await state.set_state(ProcessGameState.waiting_for_answer)
