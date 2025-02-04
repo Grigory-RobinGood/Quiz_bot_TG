@@ -1,18 +1,11 @@
-import asyncio
 import logging
-from asyncio import timeout
-from logging import Filter
 
-from aiogram import Dispatcher, Router
 from aiogram.types import CallbackQuery
 from aiogram.filters.callback_data import CallbackData
 from aiogram.filters import BaseFilter
-from contextlib import contextmanager
-from typing import Optional
+
 
 logging.basicConfig(level=logging.INFO)
-
-
 
 
 class AddQuestionCallbackData(CallbackData, prefix="add_question"):
@@ -161,5 +154,3 @@ class CallbackQueryFilter(BaseFilter):
 
     async def __call__(self, callback_query: CallbackQuery) -> bool:
         return callback_query.from_user.id == self.user_id
-
-
