@@ -101,7 +101,7 @@ async def main():
     #Регистрируем middleware
     dp.update.middleware(DatabaseMiddleware(async_session_maker))
 
-
+    logging.basicConfig(level=logging.DEBUG)
     # Пропускаем накопившиеся апдейты и запускаем polling
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)

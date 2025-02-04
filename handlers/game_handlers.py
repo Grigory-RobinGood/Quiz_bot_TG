@@ -58,14 +58,16 @@ async def process_answer(callback: CallbackQuery, state: FSMContext, session: As
             if hints_used.get("insure"):
                 final_score = guaranteed_score
                 await callback.message.edit_text(
-                    f"Неправильно. Правильный ответ: {correct_answer}. "
-                    f"Вы застраховали сумму: {final_score}!"
+                    text=f"Неправильно. Правильный ответ: {correct_answer}. "
+                    f"Вы застраховали сумму: {final_score}!",
+                    reply_markup=main_kb
                 )
                 await update_user_balance(callback.from_user.id, final_score, "silver", session)
             else:
                 final_score = 0
                 await callback.message.edit_text(
-                    f"Неправильно. Правильный ответ: {correct_answer}. Ваш выигрыш: {final_score}.")
+                    text=f"Неправильно. Правильный ответ: {correct_answer}. Ваш выигрыш: {final_score}.",
+                    reply_markup=main_kb)
 
             await state.clear()  # Завершаем игру
 

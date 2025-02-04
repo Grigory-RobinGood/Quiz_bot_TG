@@ -150,6 +150,9 @@ class HelpCallbackData(CallbackData, prefix="help"):
 class StartGameCallbackData(CallbackData, prefix="start_game"):
     league: str
 
+    def __post_init__(self):
+        print(f"Создан callback_data: {self.pack()}")  # Логируем формирование callback_data
+
 
 #Фукция ожидания ответа от пользователя
 class CallbackQueryFilter(BaseFilter):
