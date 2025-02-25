@@ -115,7 +115,6 @@ main_kb = InlineKeyboardMarkup(
     ]
 )
 
-
 # ____________Создаем инлайн клавиатуру для меню аккаунт____________
 account_kb = InlineKeyboardMarkup(
     inline_keyboard=[
@@ -132,16 +131,16 @@ account_kb = InlineKeyboardMarkup(
     ]
 )
 
+
 # ____________Создаем инлайн клавиатуру для меню баланс____________
-balance_kb = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [InlineKeyboardButton(text='Пополнить',
-                              callback_data=f.AddBalanceCallbackData().pack()),
-         InlineKeyboardButton(text='Вывести',
-                              callback_data=f.OutBalanceCallbackData().pack())
-         ]
-    ]
-)
+def get_balance_keyboard():
+    keyboard = InlineKeyboardBuilder()
+    keyboard.button(text="➕ Пополнить", callback_data="top_up_balance")
+    keyboard.button(text="➖ Вывести", callback_data="withdrawal")
+    keyboard.button(text="🔄 Обменять", callback_data=f.ExchangeCallbackData().pack())
+    keyboard.button(text="🔙 Назад", callback_data="back_to_account")
+    return keyboard.as_markup()
+
 
 # ____________Создаем инлайн клавиатуру для меню заработать____________
 earn_kb = InlineKeyboardMarkup(
@@ -255,3 +254,5 @@ def generate_game_message(question_text, answers):
         [f"{letter}. {answer}" for letter, answer in zip(letters, answers)]
     )
     return f"{question_text}\n\n{formatted_answers}"
+
+# генерация клавиатуры Баланс

@@ -4,22 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0c68072f-5812-4d07-bf64-758c8421e93c" name="Changes" comment="добавлен код процесса игры (файл game.py)">
-      <change afterPath="$PROJECT_DIR$/.dockerignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/services/user_dialog.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/Stepik_test_bot.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Stepik_test_bot.iml" afterDir="false" />
+    <list default="true" id="0c68072f-5812-4d07-bf64-758c8421e93c" name="Changes" comment="добавлена обработка кнопки &quot;Рейтинг&quot;">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/db/db_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/db/db_functions.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/db/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/db/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/game_handlers.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/game_handlers.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/user_handlers.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/user_handlers.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/keyboards/keyboards.py" beforeDir="false" afterPath="$PROJECT_DIR$/keyboards/keyboards.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/FSM.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/FSM.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/services.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/services.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/game.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -211,7 +202,23 @@
       <option name="project" value="LOCAL" />
       <updated>1734015574119</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="добавлена обработка кнопки &quot;Рейтинг&quot;">
+      <option name="closed" value="true" />
+      <created>1740473160777</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1740473160777</updated>
+    </task>
+    <task id="LOCAL-00013" summary="добавлена обработка кнопки &quot;Рейтинг&quot;">
+      <option name="closed" value="true" />
+      <created>1740473218881</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1740473218881</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -223,6 +230,7 @@
     <MESSAGE value="Добавлена регистрация пользователей, настроена миграция" />
     <MESSAGE value="база данных переделана на postgresql&#10;Исправлены функции базы данных" />
     <MESSAGE value="добавлен код процесса игры (файл game.py)" />
-    <option name="LAST_COMMIT_MESSAGE" value="добавлен код процесса игры (файл game.py)" />
+    <MESSAGE value="добавлена обработка кнопки &quot;Рейтинг&quot;" />
+    <option name="LAST_COMMIT_MESSAGE" value="добавлена обработка кнопки &quot;Рейтинг&quot;" />
   </component>
 </project>

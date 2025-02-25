@@ -149,7 +149,9 @@ async def update_user_balance(user_id: int, amount: int, currency: str, session:
     if not user:
         return False
 
-    if currency == "silver":
+    if currency == "bronze":
+        user.balance_bronze += amount
+    elif currency == "silver":
         user.balance_silver += amount
     elif currency == "gold":
         user.balance_gold += amount

@@ -68,6 +68,7 @@ class Users(Base):
     user_id = Column(Integer, unique=True, nullable=False)
     username = Column(String(50), nullable=True)
     balance_rubles = Column(Float, default=0.0)
+    balance_bronze = Column(Integer, default=0)
     balance_silver = Column(Integer, default=0)
     balance_gold = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)

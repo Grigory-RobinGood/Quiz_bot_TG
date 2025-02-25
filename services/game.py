@@ -3,12 +3,13 @@ import logging
 
 from aiogram import Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from sqlalchemy.sql.expression import func
 from sqlalchemy.future import select
 from sqlalchemy.exc import SQLAlchemyError
 
 from db.models import Users, Game, Question
+from keyboards.keyboards import main_kb
 from services.FSM import ProcessGameState
 
 logger = logging.getLogger(__name__)
@@ -78,10 +79,10 @@ async def start_game(session, user_id: int, league: str, send_message, router, s
         # Проверяем баланс пользователя
         if league != "Bronze":
             if league_config["currency"] == "silver" and user.balance_silver < league_config["cost"]:
-                await send_message("Недостаточно серебряных монет для начала игры.")
+                await send_message("Недостаточно серебряных монет для начала игры.", reply_markup=main_kb)
                 return
             elif league_config["currency"] == "gold" and user.balance_gold < league_config["cost"]:
-                await send_message("Недостаточно золотых монет для начала игры.")
+                await send_message("Недостаточно золотых монет для начала игры.", reply_markup=main_kb)
                 return
 
         # Списываем стоимость игры

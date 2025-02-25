@@ -2,15 +2,16 @@ import logging
 
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager, StartMode
+from sqlalchemy import select
 
-from db.models import AsyncSessionLocal
-from keyboards.keyboards import main_kb, account_kb
+from db.models import AsyncSessionLocal, Users
+from keyboards.keyboards import main_kb, account_kb, get_balance_keyboard
 from lexicon.lexicon_ru import LEXICON_RU
 from services import filters as f, game
 from services.FSM import DialogStates
-from services.filters import StartGameCallbackData
+from services.filters import StartGameCallbackData, BalanceCallbackData
 from services.game import start_game
 from services.user_dialog import rating_router
 
@@ -48,10 +49,7 @@ async def process_help_command(callback: CallbackQuery):
 
 #______________________Хэндлеры для выбора лиги___________________________________
 @router.callback_query(StartGameCallbackData.filter())
-async def handle_bronze_league_start(call: CallbackQuery,
-                                     callback_data: StartGameCallbackData,
-                                     state: FSMContext):
-
+async def handle_start_game(call: CallbackQuery, callback_data: StartGameCallbackData, state: FSMContext):
     #Обработчик нажатия кнопки "Бронзовая лига".
     if callback_data.league == "Bronze":
         league = callback_data.league
@@ -140,3 +138,35 @@ async def start_rating_dialog(callback: CallbackQuery, dialog_manager: DialogMan
     await dialog_manager.start(state=DialogStates.rating, mode=StartMode.RESET_STACK)
     await callback.answer()
 
+
+# Обработчик кнопки "Баланс"
+@router.callback_query(BalanceCallbackData.filter())
+async def show_balance(callback: CallbackQuery):
+    user_id = callback.from_user.id
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(Users).where(Users.user_id == user_id))
+        user = result.scalars().first()
+
+        if user:
+            balance_text = (
+                f"💰 *Ваш баланс:*\n"
+                f"🥉 *Бронзовые монеты:* {user.balance_bronze}\n"
+                f"🥈 *Серебряные монеты:* {user.balance_silver}\n"
+                f"🥇 *Золотые монеты:* {user.balance_gold}\n"
+                f"💵 *Рубли:* {user.balance_rubles:.2f}₽"
+            )
+        else:
+            balance_text = "❌ Ошибка: Ваш профиль не найден в базе данных."
+
+    await callback.message.edit_text(
+        balance_text,
+        parse_mode="Markdown",
+        reply_markup=get_balance_keyboard()
+    )
+
+
+@router.callback_query(F.data == "back_to_account")
+async def back_to_account(callback: CallbackQuery):
+    await callback.message.delete()
+    await process_account_command(callback)
