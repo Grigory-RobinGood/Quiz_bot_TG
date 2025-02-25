@@ -109,7 +109,7 @@ main_kb = InlineKeyboardMarkup(
             ),
             InlineKeyboardButton(
                 text="Справка",
-                callback_data=f.HelpCallbackData().pack()  # Если есть CallbackData для справки, аналогично замените
+                callback_data=f.HelpCallbackData().pack()
             ),
         ]
     ]
@@ -120,16 +120,14 @@ main_kb = InlineKeyboardMarkup(
 account_kb = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text='Рейтинг',
-                              callback_data=f.UserRateCallbackData().pack()),
-         InlineKeyboardButton(text='Магазин',
-                              callback_data=f.MagazineCallbackData().pack())
-         ],
-        [InlineKeyboardButton(text='Баланс',
+                              callback_data="user_rate"),
+         InlineKeyboardButton(text='Баланс',
                               callback_data=f.BalanceCallbackData().pack()),
-         InlineKeyboardButton(text='Заработать монеты',
-                              callback_data=f.EarnCoinsCallbackData().pack()),
          InlineKeyboardButton(text='Обмен',
                               callback_data=f.ExchangeCallbackData().pack())
+         ],
+        [InlineKeyboardButton(text='Заработать монеты',
+                              callback_data=f.EarnCoinsCallbackData().pack())
          ]
     ]
 )
@@ -148,9 +146,9 @@ balance_kb = InlineKeyboardMarkup(
 # ____________Создаем инлайн клавиатуру для меню заработать____________
 earn_kb = InlineKeyboardMarkup(
     inline_keyboard=[
-        [InlineKeyboardButton(text='Предложить вопрос',
+        [InlineKeyboardButton(text='Предложить свой вопрос',
                               callback_data=f.AddBalanceCallbackData().pack()),
-         InlineKeyboardButton(text='Подписаться',
+         InlineKeyboardButton(text='Подписаться на спонсоров',
                               callback_data=f.SubscribeCallbackData().pack())
          ]
     ]

@@ -1,21 +1,24 @@
 import logging
 
-from aiogram import Router
+from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
+from aiogram_dialog import DialogManager, StartMode
 
 from db.models import AsyncSessionLocal
 from keyboards.keyboards import main_kb, account_kb
 from lexicon.lexicon_ru import LEXICON_RU
 from services import filters as f, game
+from services.FSM import DialogStates
 from services.filters import StartGameCallbackData
 from services.game import start_game
+from services.user_dialog import rating_router
 
 router = Router()
 logger = logging.getLogger(__name__)
 
 
-# Этот хэндлер срабатыввает на команду /account
+# __________Этот хэндлер срабатывает на команду /account________________________________
 @router.callback_query(f.AccountCallbackData.filter())
 async def process_account_command(callback: CallbackQuery):
     try:
@@ -130,7 +133,9 @@ async def handle_bronze_league_start(call: CallbackQuery,
                 await call.message.answer("Произошла ошибка при запуске игры. Попробуйте позже.")
 
 
-# @router.callback_query()
-# async def debug_callback(call: CallbackQuery):
-#     print(f"Получен callback: {call.data}")  # Выведет любые колбэки
-#     await call.answer("Колбэк получен!", show_alert=True)
+# Обработчик для запуска диалога рейтинга
+@rating_router.callback_query(F.data == "user_rate")
+async def start_rating_dialog(callback: CallbackQuery, dialog_manager: DialogManager):
+    await callback.message.delete()
+    await dialog_manager.start(state=DialogStates.rating, mode=StartMode.RESET_STACK)
+    await callback.answer()

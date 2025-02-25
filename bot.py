@@ -1,11 +1,15 @@
 import asyncio
 import logging
+import os
 
+from aiocache import RedisCache
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.filters import CommandStart
+from aiogram.fsm.storage.base import DefaultKeyBuilder
 from aiogram.types import Message
 from aiogram.fsm.storage.redis import RedisStorage, Redis
+from aiogram_dialog import setup_dialogs
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.future import select
 
@@ -16,8 +20,9 @@ from keyboards.set_menu import set_main_menu
 from lexicon.lexicon_ru import LEXICON_RU
 from keyboards.keyboards import admin_kb, main_kb
 from middleware.game_mdwr import DatabaseMiddleware
-from services import game
+from services import game, user_dialog
 from db.models import async_session_maker
+
 
 # Инициализируем логгер
 logger = logging.getLogger(__name__)
@@ -45,7 +50,14 @@ async def main():
     )
 
     redis = Redis(host='localhost')
-    storage = RedisStorage(redis=redis)
+    storage = RedisStorage(redis=redis, key_builder=DefaultKeyBuilder(with_destiny=True))
+
+    REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+    REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+
+    # Инициализация кеша
+    cache = RedisCache(endpoint=REDIS_HOST, port=REDIS_PORT)
+
     dp = Dispatcher(storage=storage)
 
     await set_main_menu(bot)
@@ -92,11 +104,19 @@ async def main():
                 # Логируем другие возможные ошибки
                 logger.error("Ошибка при обработке команды /start: %s", e)
 
+
+    setup_dialogs(dp)
+
     # Регистриуем роутеры в диспетчере
     dp.include_router(user_handlers.router)
     dp.include_router(admin_handlers.router)
     dp.include_router(game_handlers.router)
     dp.include_router(game.router)
+    dp.include_router(user_dialog.rating_router)
+
+
+
+
 
     #Регистрируем middleware
     dp.update.middleware(DatabaseMiddleware(async_session_maker))
@@ -104,6 +124,7 @@ async def main():
     logging.basicConfig(level=logging.DEBUG)
     # Пропускаем накопившиеся апдейты и запускаем polling
     await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot)
+    await dp.start_polling(bot, skip_updates=True)
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

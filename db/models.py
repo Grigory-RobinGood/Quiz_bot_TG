@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 os.makedirs("db", exist_ok=True)
 
 # Подключение к базе данных
-DATABASE_URL = config.database.url  # Убедитесь, что путь совпадает с вашей конфигурацией
+DATABASE_URL = config.database.url
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL is not set in the config.")
 
@@ -27,7 +27,7 @@ if not DATABASE_URL:
 engine = create_async_engine(DATABASE_URL, echo=True)
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
-# 🔹 Создаем фабрику сессий
+# Создаем фабрику сессий
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 Base = declarative_base()

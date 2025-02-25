@@ -161,7 +161,6 @@ async def hint_remove_two(callback: CallbackQuery, state: FSMContext):
     await callback.answer("Удалены два неверных ответа!")
 
 
-
 @router.callback_query(F.data == "hint:hint_take_money", StateFilter(ProcessGameState.waiting_for_answer))
 async def hint_take_money(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
     """Обработчик кнопки 'Забрать выигрыш'."""
@@ -184,6 +183,6 @@ async def hint_take_money(callback: CallbackQuery, state: FSMContext, session: A
     await state.clear()
 
 
-@router.callback_query()
-async def log_callback_query(callback: CallbackQuery):
-    logger.info(f"Callback data: {callback.data}")
+# @router.callback_query()
+# async def log_callback_query(callback: CallbackQuery):
+#     logger.info(f"Callback data: {callback.data}")

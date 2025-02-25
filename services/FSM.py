@@ -1,6 +1,4 @@
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import default_state, State, StatesGroup
-from aiogram.fsm.storage.redis import RedisStorage, Redis
+from aiogram.fsm.state import State, StatesGroup
 
 
 class AddQuestionState(StatesGroup):
@@ -22,3 +20,6 @@ class ProcessGameState(StatesGroup):
     game_finished = State()  # Завершение игры
 
 
+# Создаем группу состояний для диалога
+class DialogStates(StatesGroup):
+    rating = State()  # Состояние для рейтинга
