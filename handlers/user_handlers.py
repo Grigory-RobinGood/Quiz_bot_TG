@@ -139,3 +139,4 @@ async def start_rating_dialog(callback: CallbackQuery, dialog_manager: DialogMan
     await callback.message.delete()
     await dialog_manager.start(state=DialogStates.rating, mode=StartMode.RESET_STACK)
     await callback.answer()
+
