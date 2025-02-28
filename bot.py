@@ -16,13 +16,13 @@ from sqlalchemy.future import select
 from db.models import AsyncSessionLocal, Users  # Импортируем вашу модель Users
 from config_data.config import Config, load_config
 from handlers import admin_handlers, user_handlers, game_handlers
+from handlers.user_handlers import exchange_router
 from keyboards.set_menu import set_main_menu
 from lexicon.lexicon_ru import LEXICON_RU
 from keyboards.keyboards import admin_kb, main_kb
 from middleware.game_mdwr import DatabaseMiddleware
 from services import game, user_dialog
 from db.models import async_session_maker
-
 
 # Инициализируем логгер
 logger = logging.getLogger(__name__)
@@ -104,19 +104,16 @@ async def main():
                 # Логируем другие возможные ошибки
                 logger.error("Ошибка при обработке команды /start: %s", e)
 
-
+    # Регистрируем диалоги
     setup_dialogs(dp)
 
     # Регистриуем роутеры в диспетчере
     dp.include_router(user_handlers.router)
+    dp.include_router(exchange_router)
     dp.include_router(admin_handlers.router)
     dp.include_router(game_handlers.router)
     dp.include_router(game.router)
     dp.include_router(user_dialog.rating_router)
-
-
-
-
 
     #Регистрируем middleware
     dp.update.middleware(DatabaseMiddleware(async_session_maker))
@@ -125,6 +122,7 @@ async def main():
     # Пропускаем накопившиеся апдейты и запускаем polling
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot, skip_updates=True)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

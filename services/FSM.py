@@ -23,3 +23,8 @@ class ProcessGameState(StatesGroup):
 # Создаем группу состояний для диалога
 class DialogStates(StatesGroup):
     rating = State()  # Состояние для рейтинга
+
+
+class ExchangeStates(StatesGroup):
+    """Состояния для процесса обмена валют."""
+    waiting_for_exchange_amount = State()

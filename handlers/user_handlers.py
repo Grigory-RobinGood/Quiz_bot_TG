@@ -1,21 +1,26 @@
 import logging
 
 from aiogram import Router, F
+from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager, StartMode
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.models import AsyncSessionLocal, Users
-from keyboards.keyboards import main_kb, account_kb, get_balance_keyboard
+from db.db_functions import get_exchange_rates
+from db.models import AsyncSessionLocal, Users, ExchangeRates
+from keyboards.keyboards import main_kb, account_kb, get_balance_keyboard, exchange_kb, cancel_exchange_kb
 from lexicon.lexicon_ru import LEXICON_RU
 from services import filters as f, game
-from services.FSM import DialogStates
-from services.filters import StartGameCallbackData, BalanceCallbackData
+from services.FSM import DialogStates, ExchangeStates
+from services.filters import StartGameCallbackData, BalanceCallbackData, ExchangeCallbackData, \
+    ExchangeButtonCallbackData
 from services.game import start_game
 from services.user_dialog import rating_router
 
 router = Router()
+exchange_router = Router()
 logger = logging.getLogger(__name__)
 
 
@@ -166,7 +171,90 @@ async def show_balance(callback: CallbackQuery):
     )
 
 
+# Обработка кнопки Назад в меню Аккаунт
 @router.callback_query(F.data == "back_to_account")
 async def back_to_account(callback: CallbackQuery):
     await callback.message.delete()
     await process_account_command(callback)
+
+
+# Обработка кнопки Обмен
+@router.callback_query(ExchangeButtonCallbackData.filter())
+async def show_exchange_rates(callback: CallbackQuery, session: AsyncSession):
+    """Обработчик кнопки 'Обмен' — показывает актуальные курсы обмена."""
+    exchange_text = await get_exchange_rates(session)
+    await callback.message.edit_text(exchange_text, reply_markup=exchange_kb)
+
+
+@exchange_router.callback_query(ExchangeCallbackData.filter())
+async def ask_exchange_amount(callback: CallbackQuery, callback_data: ExchangeCallbackData, state: FSMContext):
+    """Обработчик выбора направления обмена — запрашивает сумму"""
+    await state.update_data(from_currency=callback_data.from_currency, to_currency=callback_data.to_currency)
+    await callback.message.answer(
+        f"🔄 Введите сумму для обмена {callback_data.from_currency} → {callback_data.to_currency}:"
+    )
+    await state.set_state(ExchangeStates.waiting_for_exchange_amount)
+
+
+@exchange_router.callback_query(F.data == "cancel_exchange")
+async def cancel_exchange(callback: CallbackQuery, state: FSMContext):
+    """Отмена обмена"""
+    await state.clear()
+    await callback.message.delete()
+    await callback.message.answer("❌ Обмен отменён.", reply_markup=exchange_kb)
+
+
+@exchange_router.message(StateFilter(ExchangeStates.waiting_for_exchange_amount))
+async def process_exchange(message: Message, state: FSMContext, session: AsyncSession):
+    """Обрабатывает ввод суммы и выполняет обмен."""
+    user_id = message.from_user.id
+    user = await session.scalar(select(Users).where(Users.user_id == user_id))
+
+    if not user:
+        await message.answer("⚠️ Ошибка: пользователь не найден.", reply_markup=exchange_kb)
+        return
+
+    data = await state.get_data()
+    from_currency = data["from_currency"]
+    to_currency = data["to_currency"]
+
+    try:
+        amount = float(message.text)
+        if amount <= 0:
+            raise ValueError
+    except ValueError:
+        await message.answer("⚠️ Введите корректную сумму.")
+        return
+
+    # Проверяем баланс пользователя
+    user_balance = getattr(user, f"balance_{from_currency.lower()}")
+    if amount > user_balance:
+        await message.answer("⚠️ Недостаточно средств для обмена.", reply_markup=exchange_kb)
+        return
+
+    # Получаем актуальный курс обмена
+    rate = await session.scalar(select(ExchangeRates).filter_by(from_currency=from_currency, to_currency=to_currency))
+    if not rate:
+        await message.answer("⚠️ Ошибка: курс обмена не найден.", reply_markup=exchange_kb)
+        return
+
+    # Рассчитываем сумму после обмена
+    exchanged_amount = amount * rate.rate
+
+    # Обновляем баланс пользователя
+    setattr(user, f"balance_{from_currency.lower()}", user_balance - amount)
+    setattr(user, f"balance_{to_currency.lower()}", getattr(user, f"balance_{to_currency.lower()}") + exchanged_amount)
+
+    await session.commit()
+
+    await message.answer(text=f"✅ Обмен успешно завершён!\n"
+                              f"{amount} {from_currency} → {exchanged_amount:.2f} {to_currency}",
+                         reply_markup=exchange_kb)
+
+    await state.clear()
+
+
+@exchange_router.message()
+async def debug_state(message: Message, state: FSMContext):
+    current_state = await state.get_state()
+    print(f"Текущее состояние: {current_state}")

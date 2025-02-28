@@ -112,7 +112,7 @@ class BalanceCallbackData(CallbackData, prefix="balance"):
     pass
 
 
-class ExchangeCallbackData(CallbackData, prefix="exchange"):
+class ExchangeButtonCallbackData(CallbackData, prefix="exchange_button"):
     pass
 
 
@@ -154,3 +154,8 @@ class CallbackQueryFilter(BaseFilter):
 
     async def __call__(self, callback_query: CallbackQuery) -> bool:
         return callback_query.from_user.id == self.user_id
+
+
+class ExchangeCallbackData(CallbackData, prefix="exchange"):
+    from_currency: str
+    to_currency: str

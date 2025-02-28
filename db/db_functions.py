@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import func
 from sqlalchemy.exc import SQLAlchemyError
 
-from db.models import Question, Users
+from db.models import Question, Users, ExchangeRates
 
 # Логирование
 logger = logging.getLogger(__name__)
@@ -158,3 +158,20 @@ async def update_user_balance(user_id: int, amount: int, currency: str, session:
 
     await session.commit()
     return True
+
+
+# Функция получения актуальных курсов обмена монет
+async def get_exchange_rates(session: AsyncSession) -> str:
+    """Получает актуальные курсы обмена из базы данных и формирует сообщение."""
+    result = await session.execute(select(ExchangeRates))
+    rates = result.scalars().all()
+
+    if not rates:
+        return "⚠️ Курсы обмена пока не установлены."
+
+    # Формируем сообщение
+    exchange_text = "💰 <b>Курсы обмена:</b>\n"
+    for rate in rates:
+        exchange_text += f"1 {rate.from_currency} = {rate.rate} {rate.to_currency}\n"
+
+    return exchange_text

@@ -8,7 +8,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from lexicon.lexicon_ru import LEXICON_RU
 from services import filters as f
-from services.filters import StartGameCallbackData
+from services.filters import StartGameCallbackData, ExchangeCallbackData
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +123,7 @@ account_kb = InlineKeyboardMarkup(
          InlineKeyboardButton(text='Баланс',
                               callback_data=f.BalanceCallbackData().pack()),
          InlineKeyboardButton(text='Обмен',
-                              callback_data=f.ExchangeCallbackData().pack())
+                              callback_data=f.ExchangeButtonCallbackData().pack())
          ],
         [InlineKeyboardButton(text='Заработать монеты',
                               callback_data=f.EarnCoinsCallbackData().pack())
@@ -137,7 +137,7 @@ def get_balance_keyboard():
     keyboard = InlineKeyboardBuilder()
     keyboard.button(text="➕ Пополнить", callback_data="top_up_balance")
     keyboard.button(text="➖ Вывести", callback_data="withdrawal")
-    keyboard.button(text="🔄 Обменять", callback_data=f.ExchangeCallbackData().pack())
+    keyboard.button(text="🔄 Обменять", callback_data=f.ExchangeButtonCallbackData().pack())
     keyboard.button(text="🔙 Назад", callback_data="back_to_account")
     return keyboard.as_markup()
 
@@ -156,18 +156,29 @@ earn_kb = InlineKeyboardMarkup(
 # ____________Создаем инлайн клавиатуру для меню обмен____________
 exchange_kb = InlineKeyboardMarkup(
     inline_keyboard=[
-        [InlineKeyboardButton(text='RUB/Gold',
-                              callback_data=f.UserRateCallbackData().pack()),
-         InlineKeyboardButton(text='Gold/RUB',
-                              callback_data=f.MagazineCallbackData().pack())
-         ],
-        [InlineKeyboardButton(text='Gold/Silver',
-                              callback_data=f.BalanceCallbackData().pack()),
-         InlineKeyboardButton(text='Silver/Gold',
-                              callback_data=f.EarnCoinsCallbackData().pack())
-         ]
+        [InlineKeyboardButton(text='RUB → Gold',
+                              callback_data=ExchangeCallbackData(from_currency="Rubles", to_currency="Gold").pack()),
+         InlineKeyboardButton(text='Gold → RUB',
+                              callback_data=ExchangeCallbackData(from_currency="Gold", to_currency="Rubles").pack())],
+
+        [InlineKeyboardButton(text='Gold → Silver',
+                              callback_data=ExchangeCallbackData(from_currency="Gold", to_currency="Silver").pack()),
+         InlineKeyboardButton(text='Silver → Gold',
+                              callback_data=ExchangeCallbackData(from_currency="Silver", to_currency="Gold").pack())],
+
+        [InlineKeyboardButton(text='Назад',
+                              callback_data="back_to_account")]
     ]
 )
+
+# Клавиатура для отмены обмена
+cancel_exchange_kb = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_exchange")]
+    ]
+)
+
+
 # ____________Создаем главную игровую клавиатуру____________________
 game_kb = InlineKeyboardMarkup(
     inline_keyboard=[

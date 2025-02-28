@@ -4,13 +4,15 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0c68072f-5812-4d07-bf64-758c8421e93c" name="Changes" comment="добавлена обработка кнопки &quot;Рейтинг&quot;">
+    <list default="true" id="0c68072f-5812-4d07-bf64-758c8421e93c" name="Changes" comment="добавлена обработка кнопки &quot;Баланс&quot;">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/db/db_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/db/db_functions.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/db/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/db/models.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/user_handlers.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/user_handlers.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/keyboards/keyboards.py" beforeDir="false" afterPath="$PROJECT_DIR$/keyboards/keyboards.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/game.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/FSM.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/FSM.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/filters.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/filters.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -69,7 +71,7 @@
     &quot;last_opened_file_path&quot;: &quot;D:/UrbanUnv/Python/module16_FastAPI&quot;
   }
 }</component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Python.bot">
     <configuration name="bot" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="Stepik_test_bot" />
       <option name="ENV_FILES" value="$PROJECT_DIR$/.env" />
@@ -92,9 +94,32 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="models" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Stepik_test_bot" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/db" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/db/models.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <recent_temporary>
       <list>
         <item itemvalue="Python.bot" />
+        <item itemvalue="Python.models" />
       </list>
     </recent_temporary>
   </component>
@@ -218,7 +243,15 @@
       <option name="project" value="LOCAL" />
       <updated>1740473218881</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="добавлена обработка кнопки &quot;Баланс&quot;">
+      <option name="closed" value="true" />
+      <created>1740503742563</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1740503742563</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -231,6 +264,7 @@
     <MESSAGE value="база данных переделана на postgresql&#10;Исправлены функции базы данных" />
     <MESSAGE value="добавлен код процесса игры (файл game.py)" />
     <MESSAGE value="добавлена обработка кнопки &quot;Рейтинг&quot;" />
-    <option name="LAST_COMMIT_MESSAGE" value="добавлена обработка кнопки &quot;Рейтинг&quot;" />
+    <MESSAGE value="добавлена обработка кнопки &quot;Баланс&quot;" />
+    <option name="LAST_COMMIT_MESSAGE" value="добавлена обработка кнопки &quot;Баланс&quot;" />
   </component>
 </project>

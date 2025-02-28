@@ -109,6 +109,15 @@ class ProposedQuestion(BaseQuestion):
     user = relationship('Users', back_populates='proposed_questions')
 
 
+class ExchangeRates(Base):
+    __tablename__ = "exchange_rates"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    from_currency = Column(String, nullable=False)  # Например, "RUB"
+    to_currency = Column(String, nullable=False)  # Например, "Gold"
+    rate = Column(Float, nullable=False)  # Курс обмена (сколько единиц to_currency дают за 1 from_currency)
+
+
 class Game(Base):
     __tablename__ = 'games'
 
