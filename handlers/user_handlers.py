@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from aiogram import Router, F
 from aiogram.filters import StateFilter
@@ -9,11 +10,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.db_functions import get_exchange_rates
-from db.models import AsyncSessionLocal, Users, ExchangeRates
-from keyboards.keyboards import main_kb, account_kb, get_balance_keyboard, exchange_kb, cancel_exchange_kb
+from db.models import AsyncSessionLocal, Users, ExchangeRates, ProposedQuestion
+from keyboards.keyboards import main_kb, account_kb, get_balance_keyboard, exchange_kb, cancel_exchange_kb, \
+    earn_coins_kb, add_or_cancel
 from lexicon.lexicon_ru import LEXICON_RU
 from services import filters as f, game
-from services.FSM import DialogStates, ExchangeStates
+from services.FSM import DialogStates, ExchangeStates, ProposeQuestionState
 from services.filters import StartGameCallbackData, BalanceCallbackData, ExchangeCallbackData, \
     ExchangeButtonCallbackData
 from services.game import start_game
@@ -258,3 +260,97 @@ async def process_exchange(message: Message, state: FSMContext, session: AsyncSe
 async def debug_state(message: Message, state: FSMContext):
     current_state = await state.get_state()
     print(f"Текущее состояние: {current_state}")
+
+
+@router.callback_query(F.data == "earn_coins")
+async def earn_coins_menu(callback: CallbackQuery):
+    """Обработчик кнопки 'Заработать монеты' — показывает клавиатуру с вариантами"""
+    await callback.message.edit_text("💰 Выберите способ заработка монет:", reply_markup=earn_coins_kb)
+
+
+@router.callback_query(F.data == "back_to_account")
+async def back_to_main_menu(callback: CallbackQuery):
+    """Обработчик кнопки 'Назад' — возвращает в главное меню"""
+    await callback.message.edit_text("Вы вошли в свой аккаунт", reply_markup=account_kb)
+
+
+# _____________Обработка предложения вопроса пользователем____________________
+@router.callback_query(F.data == "propose_question")
+async def propose_question(callback: CallbackQuery, state: FSMContext):
+    """Запуск процесса предложения вопроса"""
+    await callback.message.answer("✍ Введите текст вашего вопроса:")
+    await state.set_state(ProposeQuestionState.waiting_for_question_text)
+
+
+@router.message(ProposeQuestionState.waiting_for_question_text)
+async def propose_question_text(message: Message, state: FSMContext):
+    await state.update_data(question_text=message.text)
+    await message.answer("✅ Введите правильный ответ:")
+    await state.set_state(ProposeQuestionState.waiting_for_correct_answer)
+
+
+@router.message(ProposeQuestionState.waiting_for_correct_answer)
+async def propose_correct_answer(message: Message, state: FSMContext):
+    await state.update_data(correct_answer=message.text)
+    await message.answer("❌ Введите первый неправильный ответ:")
+    await state.set_state(ProposeQuestionState.waiting_for_wrong_answer_1)
+
+
+@router.message(ProposeQuestionState.waiting_for_wrong_answer_1)
+async def propose_wrong_answer_1(message: Message, state: FSMContext):
+    await state.update_data(answer_2=message.text)
+    await message.answer("❌ Введите второй неправильный ответ:")
+    await state.set_state(ProposeQuestionState.waiting_for_wrong_answer_2)
+
+
+@router.message(ProposeQuestionState.waiting_for_wrong_answer_2)
+async def propose_wrong_answer_2(message: Message, state: FSMContext):
+    await state.update_data(answer_3=message.text)
+    await message.answer("❌ Введите третий неправильный ответ:")
+    await state.set_state(ProposeQuestionState.waiting_for_wrong_answer_3)
+
+
+@router.message(ProposeQuestionState.waiting_for_wrong_answer_3)
+async def propose_wrong_answer_3(message: Message, state: FSMContext):
+    await state.update_data(answer_4=message.text)
+
+    data = await state.get_data()
+    question_preview = (f"🔎 Проверьте ваш вопрос:\n\n"
+                        f"❓ Вопрос: {data['question_text']}\n"
+                        f"✅ Правильный ответ: {data['correct_answer']}\n"
+                        f"❌ Неправильные ответы:\n"
+                        f"1️⃣ {data['answer_2']}\n"
+                        f"2️⃣ {data['answer_3']}\n"
+                        f"3️⃣ {data['answer_4']}")
+
+    await message.answer(question_preview, reply_markup=add_or_cancel)
+    await state.set_state(ProposeQuestionState.check_and_add_question)
+
+
+@router.callback_query(ProposeQuestionState.check_and_add_question)
+async def check_and_add_proposed_question(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
+    if callback.data == "cancel":
+        await callback.message.answer("❌ Добавление вопроса отменено.", reply_markup=earn_coins_kb)
+        await state.clear()
+        return
+
+    data = await state.get_data()
+    user_id = callback.from_user.id
+
+    new_question = ProposedQuestion(
+        question_text=data["question_text"],
+        correct_answer=data["correct_answer"],
+        answer_2=data["answer_2"],
+        answer_3=data["answer_3"],
+        answer_4=data["answer_4"],
+        created_by_user_id=user_id,
+        created_at=datetime.utcnow()
+    )
+    logger.info(f"Adding question: {new_question}")
+    session.add(new_question)
+    await session.commit()
+
+    await callback.message.answer("✅ Ваш вопрос отправлен на модерацию! Спасибо за участие.",
+                                  reply_markup=earn_coins_kb)
+    await state.clear()
+

@@ -4,15 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0c68072f-5812-4d07-bf64-758c8421e93c" name="Changes" comment="добавлена обработка кнопки &quot;Баланс&quot;">
+    <list default="true" id="0c68072f-5812-4d07-bf64-758c8421e93c" name="Changes" comment="добавлена обработка Обмена монет и рублей">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/db/db_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/db/db_functions.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/db/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/db/models.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/user_handlers.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/user_handlers.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/keyboards/keyboards.py" beforeDir="false" afterPath="$PROJECT_DIR$/keyboards/keyboards.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/FSM.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/FSM.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/filters.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/filters.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -251,7 +248,15 @@
       <option name="project" value="LOCAL" />
       <updated>1740503742563</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="добавлена обработка Обмена монет и рублей">
+      <option name="closed" value="true" />
+      <created>1740762646741</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1740762646741</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -265,6 +270,7 @@
     <MESSAGE value="добавлен код процесса игры (файл game.py)" />
     <MESSAGE value="добавлена обработка кнопки &quot;Рейтинг&quot;" />
     <MESSAGE value="добавлена обработка кнопки &quot;Баланс&quot;" />
-    <option name="LAST_COMMIT_MESSAGE" value="добавлена обработка кнопки &quot;Баланс&quot;" />
+    <MESSAGE value="добавлена обработка Обмена монет и рублей" />
+    <option name="LAST_COMMIT_MESSAGE" value="добавлена обработка Обмена монет и рублей" />
   </component>
 </project>

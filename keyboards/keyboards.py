@@ -75,10 +75,10 @@ admin_kb_select_level = InlineKeyboardMarkup(
 add_or_cancel = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text=LEXICON_RU['add'],
-                              callback_data=f.AddCallbackData().pack()),
+                              callback_data="add"),
          ],
         [InlineKeyboardButton(text=LEXICON_RU['cancel'],
-                              callback_data=f.CancelCallbackData().pack()),
+                              callback_data="cancel"),
          ]
     ]
 )
@@ -143,15 +143,12 @@ def get_balance_keyboard():
 
 
 # ____________Создаем инлайн клавиатуру для меню заработать____________
-earn_kb = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [InlineKeyboardButton(text='Предложить свой вопрос',
-                              callback_data=f.AddBalanceCallbackData().pack()),
-         InlineKeyboardButton(text='Подписаться на спонсоров',
-                              callback_data=f.SubscribeCallbackData().pack())
-         ]
-    ]
-)
+earn_coins_kb = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="💡 Предложить свой вопрос", callback_data="propose_question")],
+    [InlineKeyboardButton(text="📢 Подписаться на спонсоров", callback_data="subscribe_sponsors")],
+    [InlineKeyboardButton(text="👥 Пригласить друга", callback_data="invite_friend")],
+    [InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_account")]
+])
 
 # ____________Создаем инлайн клавиатуру для меню обмен____________
 exchange_kb = InlineKeyboardMarkup(

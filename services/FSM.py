@@ -28,3 +28,12 @@ class DialogStates(StatesGroup):
 class ExchangeStates(StatesGroup):
     """Состояния для процесса обмена валют."""
     waiting_for_exchange_amount = State()
+
+
+class ProposeQuestionState(StatesGroup):
+    waiting_for_question_text = State()
+    waiting_for_correct_answer = State()
+    waiting_for_wrong_answer_1 = State()
+    waiting_for_wrong_answer_2 = State()
+    waiting_for_wrong_answer_3 = State()
+    check_and_add_question = State()

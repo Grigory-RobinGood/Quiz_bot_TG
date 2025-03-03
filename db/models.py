@@ -93,7 +93,7 @@ class BaseQuestion(Base):
     answer_2 = Column(String(100), nullable=False)
     answer_3 = Column(String(100), nullable=False)
     answer_4 = Column(String(100), nullable=False)
-    difficulty = Column(Enum(DifficultyEnum, name='difficulty_enum'), nullable=False)
+    difficulty = Column(Enum(DifficultyEnum, name='difficultyenum'), nullable=False)
     league = Column(Enum(LeagueEnum, name='league_enum'), nullable=False)
 
 
@@ -101,11 +101,18 @@ class Question(BaseQuestion):
     __tablename__ = 'questions'
 
 
-class ProposedQuestion(BaseQuestion):
+class ProposedQuestion(Base):
     __tablename__ = 'proposed_questions'
 
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    question_text = Column(String(500), unique=True, nullable=False)
+    correct_answer = Column(String(100), nullable=False)
+    answer_2 = Column(String(100), nullable=False)
+    answer_3 = Column(String(100), nullable=False)
+    answer_4 = Column(String(100), nullable=False)
     created_by_user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.timezone('UTC', func.now()))
+
     user = relationship('Users', back_populates='proposed_questions')
 
 
