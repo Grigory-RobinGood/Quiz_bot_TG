@@ -5,7 +5,9 @@ from string import ascii_uppercase
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from sqlalchemy import select
 
+from db.models import user_subscriptions
 from lexicon.lexicon_ru import LEXICON_RU
 from services import filters as f
 from services.filters import StartGameCallbackData, ExchangeCallbackData
@@ -263,4 +265,5 @@ def generate_game_message(question_text, answers):
     )
     return f"{question_text}\n\n{formatted_answers}"
 
-# генерация клавиатуры Баланс
+
+

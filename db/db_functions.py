@@ -1,11 +1,13 @@
 import logging
+
+from aiogram.enums import ChatMemberStatus
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import func
 from sqlalchemy.exc import SQLAlchemyError
 
-from db.models import Question, Users, ExchangeRates
+from db.models import Question, Users, ExchangeRates, SponsorChannel
 
 # Логирование
 logger = logging.getLogger(__name__)
@@ -175,3 +177,20 @@ async def get_exchange_rates(session: AsyncSession) -> str:
         exchange_text += f"1 {rate.from_currency} = {rate.rate} {rate.to_currency}\n"
 
     return exchange_text
+
+
+# Получение каналов спонсоров
+async def get_sponsor_channels(session: AsyncSession):
+    result = await session.execute(select(SponsorChannel))
+    return result.scalars().all()
+
+
+# Проверка подписки пользователя
+async def check_user_subscription(user_id: int, bot, session: AsyncSession):
+    channels = await get_sponsor_channels(session)
+
+    for channel in channels:
+        chat_member = await bot.get_chat_member(chat_id=channel.id, user_id=user_id)
+        if chat_member.status not in (ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER):
+            return False
+    return True

@@ -1,7 +1,7 @@
 import os
 import logging
 from sqlalchemy import (
-    Column, Integer, String, ForeignKey, Boolean, Float, DateTime, Enum, Table, func
+    Column, Integer, String, ForeignKey, Boolean, Float, DateTime, Enum, Table, func, BigInteger
 )
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import relationship, declarative_base, sessionmaker
@@ -49,14 +49,14 @@ class LeagueEnum(PyEnum):
 # Ассоциативные таблицы
 user_referrals = Table(
     'user_referrals', Base.metadata,
-    Column('referrer_id', Integer, ForeignKey('users.id'), primary_key=True),
-    Column('referred_id', Integer, ForeignKey('users.id'), primary_key=True)
+    Column('referrer_id', BigInteger, ForeignKey('users.id'), primary_key=True),
+    Column('referred_id', BigInteger, ForeignKey('users.id'), primary_key=True)
 )
 
 user_subscriptions = Table(
     'user_subscriptions', Base.metadata,
-    Column('user_id', Integer, ForeignKey('users.id'), primary_key=True),
-    Column('sponsor_channel_id', Integer, ForeignKey('sponsor_channels.id'), primary_key=True)
+    Column('user_id', BigInteger, ForeignKey('users.id'), primary_key=True),
+    Column('channel_id', BigInteger, ForeignKey('sponsor_channels.id'), primary_key=True)
 )
 
 
@@ -65,7 +65,7 @@ class Users(Base):
     __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, unique=True, nullable=False)
+    user_id = Column(BigInteger, unique=True, nullable=False)
     username = Column(String(50), nullable=True)
     balance_rubles = Column(Float, default=0.0)
     balance_bronze = Column(Integer, default=0)
@@ -110,7 +110,7 @@ class ProposedQuestion(Base):
     answer_2 = Column(String(100), nullable=False)
     answer_3 = Column(String(100), nullable=False)
     answer_4 = Column(String(100), nullable=False)
-    created_by_user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    created_by_user_id = Column(BigInteger, ForeignKey('users.user_id'), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.timezone('UTC', func.now()))
 
     user = relationship('Users', back_populates='proposed_questions')
@@ -129,7 +129,7 @@ class Game(Base):
     __tablename__ = 'games'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    user_id = Column(BigInteger, ForeignKey('users.user_id'), nullable=False)
     league = Column(Enum(LeagueEnum, name='league_enum'), nullable=False)
     score = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.timezone('UTC', func.now()))
@@ -143,7 +143,7 @@ class SponsorChannel(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(100), nullable=False)
-    link = Column(String(255), nullable=False)
+    link = Column(String(255), nullable=False, unique=True)
 
     subscribers = relationship(
         'Users',
@@ -155,7 +155,7 @@ class SponsorChannel(Base):
 class Transaction(Base):
     __tablename__ = 'transactions'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    user_id = Column(BigInteger, ForeignKey('users.user_id'), nullable=False)
     amount = Column(Float, nullable=False)
     currency = Column(String(50), nullable=False)
     transaction_type = Column(String(50), nullable=False)

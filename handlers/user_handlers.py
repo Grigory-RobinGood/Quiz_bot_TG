@@ -1,18 +1,20 @@
 import logging
+
 from datetime import datetime
 
-from aiogram import Router, F
+from aiogram import Router, F, Bot
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram_dialog import DialogManager, StartMode
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.db_functions import get_exchange_rates
-from db.models import AsyncSessionLocal, Users, ExchangeRates, ProposedQuestion
-from keyboards.keyboards import main_kb, account_kb, get_balance_keyboard, exchange_kb, cancel_exchange_kb, \
-    earn_coins_kb, add_or_cancel
+from db.models import AsyncSessionLocal, Users, ExchangeRates, ProposedQuestion, SponsorChannel, user_subscriptions
+from keyboards.keyboards import (main_kb, account_kb, get_balance_keyboard, exchange_kb, earn_coins_kb,
+                                 add_or_cancel)
 from lexicon.lexicon_ru import LEXICON_RU
 from services import filters as f, game
 from services.FSM import DialogStates, ExchangeStates, ProposeQuestionState
@@ -256,12 +258,6 @@ async def process_exchange(message: Message, state: FSMContext, session: AsyncSe
     await state.clear()
 
 
-@exchange_router.message()
-async def debug_state(message: Message, state: FSMContext):
-    current_state = await state.get_state()
-    print(f"Текущее состояние: {current_state}")
-
-
 @router.callback_query(F.data == "earn_coins")
 async def earn_coins_menu(callback: CallbackQuery):
     """Обработчик кнопки 'Заработать монеты' — показывает клавиатуру с вариантами"""
@@ -354,3 +350,122 @@ async def check_and_add_proposed_question(callback: CallbackQuery, state: FSMCon
                                   reply_markup=earn_coins_kb)
     await state.clear()
 
+
+@router.callback_query(lambda c: c.data == "subscribe_sponsors")
+async def show_sponsor_channels(callback: CallbackQuery, session: AsyncSession):
+    user_id = callback.from_user.id
+
+    # Получаем список всех спонсорских каналов
+    result = await session.execute(select(SponsorChannel))
+    sponsor_channels = result.scalars().all()
+
+    if not sponsor_channels:
+        await callback.answer("Сейчас нет доступных спонсорских каналов.", show_alert=True)
+        return
+
+    # Получаем список каналов, на которые подписан пользователь
+    sub_result = await session.execute(select(user_subscriptions.c.channel_id)
+                                       .where(user_subscriptions.c.user_id == user_id))
+    subscribed_channels = {row[0] for row in sub_result.fetchall()}
+
+    # Формируем клавиатуру с кнопками (отмечаем подписанные каналы)
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text=f"{'✅' if channel.id in subscribed_channels else '❌'} {channel.name}",
+                url=channel.link if channel.link.startswith("http") else f"https://t.me/{channel.link.lstrip('@')}"
+            )
+        ]
+        for channel in sponsor_channels
+    ])
+
+    # Добавляем кнопку проверки подписки и кнопку назад
+    keyboard.inline_keyboard.append([InlineKeyboardButton(text="🔄 Проверить подписку",
+                                                          callback_data="check_subscription")])
+    keyboard.inline_keyboard.append([InlineKeyboardButton(text="🔙 Назад",
+                                                          callback_data="menu")])
+
+    await callback.message.edit_text(
+        "Подпишитесь на каналы спонсоров, затем нажмите '🔄 Проверить подписку':",
+        reply_markup=keyboard
+    )
+
+
+@router.callback_query(lambda c: c.data == "check_subscription")
+async def check_subscription(callback: CallbackQuery, session: AsyncSession, bot: Bot):
+    user_id = callback.from_user.id
+
+    # Загружаем все спонсорские каналы из БД
+    result = await session.execute(select(SponsorChannel))
+    sponsor_channels = result.scalars().all()
+
+    if not sponsor_channels:
+        await callback.answer("Нет доступных спонсорских каналов.", show_alert=True)
+        return
+
+    new_subscriptions = []  # Список новых подписок
+
+    for channel in sponsor_channels:
+        chat_id = channel.link.replace("https://t.me/", "").replace("/", "")
+
+        try:
+            chat_member = await bot.get_chat_member(chat_id, user_id)
+
+            if chat_member.status in ["member", "administrator", "creator"]:
+                # Проверяем, есть ли уже запись в user_subscriptions
+                existing_subscription = await session.execute(
+                    select(user_subscriptions)
+                    .where(user_subscriptions.c.user_id == user_id,
+                           user_subscriptions.c.channel_id == channel.id)
+                )
+                if not existing_subscription.first():
+                    new_subscriptions.append(channel.id)
+
+        except TelegramBadRequest:
+            continue  # Ошибка запроса — канал недоступен или бот не админ
+
+    if new_subscriptions:
+        # Записываем новые подписки в user_subscriptions
+        for channel_id in new_subscriptions:
+            await session.execute(user_subscriptions.insert().values(user_id=user_id, channel_id=channel_id))
+
+        # Начисляем 100 серебряных монет за каждую подписку
+        user = await session.execute(select(Users).where(Users.user_id == user_id))
+        user = user.scalars().first()
+        if user:
+            user.balance_silver += 100 * len(new_subscriptions)
+
+        await session.commit()
+        await callback.answer(f"Вы подписались на {len(new_subscriptions)} канал(а), начислено "
+                              f"{100 * len(new_subscriptions)} серебряных монет!", show_alert=True)
+
+    else:
+        await callback.answer("Вы уже подписаны на все каналы.", show_alert=True)
+
+    # Получаем актуальный список подписок после проверки
+    sub_result = await session.execute(select(user_subscriptions.c.channel_id)
+                                       .where(user_subscriptions.c.user_id == user_id))
+    subscribed_channels = {row[0] for row in sub_result.fetchall()}
+
+    # Формируем новую клавиатуру с актуальными статусами подписок
+    new_keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text=f"{'✅' if channel.id in subscribed_channels else '❌'} {channel.name}",
+                url=channel.link if channel.link.startswith("http") else f"https://t.me/{channel.link.lstrip('@')}"
+            )
+        ]
+        for channel in sponsor_channels
+    ])
+    new_keyboard.inline_keyboard.append([InlineKeyboardButton(text="🔄 Проверить подписку",
+                                                              callback_data="check_subscription")])
+    new_keyboard.inline_keyboard.append([InlineKeyboardButton(text="🔙 Назад",
+                                                              callback_data="menu")])
+
+    # Проверяем, изменилось ли что-то
+    old_text = callback.message.text
+    new_text = "Подпишитесь на каналы спонсоров, затем нажмите '🔄 Проверить подписку':"
+    old_keyboard = callback.message.reply_markup
+
+    if old_text != new_text or old_keyboard != new_keyboard:
+        await callback.message.edit_text(new_text, reply_markup=new_keyboard)
