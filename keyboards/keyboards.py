@@ -5,9 +5,7 @@ from string import ascii_uppercase
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from sqlalchemy import select
 
-from db.models import user_subscriptions
 from lexicon.lexicon_ru import LEXICON_RU
 from services import filters as f
 from services.filters import StartGameCallbackData, ExchangeCallbackData
@@ -55,7 +53,7 @@ admin_kb_league = InlineKeyboardMarkup(
     ]
 )
 
-#_________________Создаем клавиатуру выбора сложности вопроса______________
+# _________________Создаем клавиатуру выбора сложности вопроса______________
 admin_kb_select_level = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text=LEXICON_RU['level_1'],
@@ -177,7 +175,6 @@ cancel_exchange_kb = InlineKeyboardMarkup(
     ]
 )
 
-
 # ____________Создаем главную игровую клавиатуру____________________
 game_kb = InlineKeyboardMarkup(
     inline_keyboard=[
@@ -264,6 +261,3 @@ def generate_game_message(question_text, answers):
         [f"{letter}. {answer}" for letter, answer in zip(letters, answers)]
     )
     return f"{question_text}\n\n{formatted_answers}"
-
-
-
