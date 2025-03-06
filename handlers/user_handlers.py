@@ -351,6 +351,7 @@ async def check_and_add_proposed_question(callback: CallbackQuery, state: FSMCon
     await state.clear()
 
 
+# ________________________ Подписка на спонсорские каналы_________________________________
 @router.callback_query(lambda c: c.data == "subscribe_sponsors")
 async def show_sponsor_channels(callback: CallbackQuery, session: AsyncSession):
     user_id = callback.from_user.id
@@ -469,3 +470,24 @@ async def check_subscription(callback: CallbackQuery, session: AsyncSession, bot
 
     if old_text != new_text or old_keyboard != new_keyboard:
         await callback.message.edit_text(new_text, reply_markup=new_keyboard)
+
+
+# ______________________ Приглашения друзей в бота________________________________
+@router.callback_query(lambda c: c.data == "invite_friend")
+async def invite_friend(callback: CallbackQuery):
+    user_id = callback.from_user.id
+    bot_username = (await callback.bot.me()).username  # Получаем username бота
+
+    referral_link = f"https://t.me/{bot_username}?start={user_id}"
+
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔗 Поделиться ссылкой",
+                              switch_inline_query=f"Присоединяйся к игре! {referral_link}")]
+    ])
+
+    await callback.message.edit_text(
+        f"👥 Приглашайте друзей и получайте монеты!\n\n"
+        f"💰 Вы получите 500 серебряных монет за каждого приглашенного друга.\n"
+        f"🔗 Ваша реферальная ссылка:\n\n<code>{referral_link}</code>",
+        reply_markup=keyboard
+    )

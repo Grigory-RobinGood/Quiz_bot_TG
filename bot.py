@@ -10,10 +10,10 @@ from aiogram.fsm.storage.base import DefaultKeyBuilder
 from aiogram.types import Message
 from aiogram.fsm.storage.redis import RedisStorage, Redis
 from aiogram_dialog import setup_dialogs
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy.future import select
 
-from db.models import AsyncSessionLocal, Users  # Импортируем вашу модель Users
+from db.models import AsyncSessionLocal, Users, user_referrals  # Импортируем вашу модель Users
 from config_data.config import Config, load_config
 from handlers import admin_handlers, user_handlers, game_handlers
 from handlers.user_handlers import exchange_router
@@ -66,43 +66,89 @@ async def main():
     async def process_start_command(message: Message):
         """
         Обработчик команды /start. Добавляет нового пользователя в базу данных, если его там ещё нет.
+        Также обрабатывает реферальную систему.
         """
+        user_id = message.from_user.id
+        username = message.from_user.username or "unknown_user"
+
         # Проверяем, является ли пользователь администратором
-        if message.from_user.id in config.tg_bot.admin_ids:
+        if user_id in config.tg_bot.admin_ids:
             await message.answer(text='Вы вошли в админ панель', reply_markup=admin_kb)
             return
+
+        # Разбираем аргументы команды (реферальный код)
+        args = message.text.split()
+        referrer_id = None
+
+        if len(args) > 1 and args[1].isdigit():
+            referrer_id = int(args[1])
+            if referrer_id == user_id:  # Запрещаем приглашать самого себя
+                referrer_id = None
 
         # Приветствие для обычных пользователей
         await message.answer(text=LEXICON_RU['/start'], reply_markup=main_kb, parse_mode='HTML')
 
-        # Создаем сессию базы данных
         async with AsyncSessionLocal() as session:
             try:
-                # Получаем user_id и username пользователя или устанавливаем значение по умолчанию
-                user_id = message.from_user.id
-                username = message.from_user.username or "unknown_user"
-
                 # Проверяем, есть ли пользователь в базе
                 result = await session.execute(select(Users).filter_by(user_id=user_id))
                 user = result.scalars().first()
 
                 if not user:
-                    # Если пользователя нет, добавляем его в базу данных
+                    # Добавляем нового пользователя
                     new_user = Users(user_id=user_id, username=username)
                     session.add(new_user)
                     await session.commit()
                     logger.info("Пользователь успешно добавлен: %s", username)
+
+                    # Обрабатываем реферальную систему
+                    if referrer_id:
+                        # Проверяем, не зарегистрирован ли пользователь уже как реферал
+                        existing_referral = await session.execute(
+                            select(user_referrals).where(user_referrals.c.referred_id == new_user.id)
+                        )
+
+                        if not existing_referral.scalars().first():
+                            # Получаем пригласившего пользователя
+                            referrer = await session.execute(select(Users).where(Users.user_id == referrer_id))
+                            referrer = referrer.scalars().first()
+
+                            if referrer:
+                                try:
+                                    # Добавляем запись в user_referrals
+                                    session.execute(user_referrals.insert().values(
+                                        referrer_id=referrer.id, referred_id=new_user.id
+                                    ))
+
+                                    # Начисляем бонусы
+                                    referrer.balance_silver += 500
+                                    new_user.balance_silver += 500
+
+                                    await session.commit()
+
+                                    # Уведомляем пригласившего
+                                    await message.bot.send_message(
+                                        referrer.user_id,
+                                        f"🎉 Ваш друг {message.from_user.full_name} присоединился!\n"
+                                        f"Вы получили 500 серебряных монет! 💰"
+                                    )
+
+                                    await message.answer(
+                                        f"🎉 Вы зарегистрировались по реферальной ссылке!\n"
+                                        f"Вы и ваш друг получили 500 серебряных монет! 💰"
+                                    )
+
+                                except IntegrityError:
+                                    await session.rollback()
+
                 else:
                     logger.info("Пользователь уже существует: %s", username)
 
             except SQLAlchemyError as e:
-                # Логируем ошибки базы данных
-                logger.error("Ошибка при добавлении пользователя в базу данных: %s", e)
-                await message.answer("Произошла ошибка при регистрации. Попробуйте позже.")
-
+                logger.error("Ошибка при работе с БД: %s", e)
+                await message.answer("⚠ Произошла ошибка при регистрации. Попробуйте позже.")
             except Exception as e:
-                # Логируем другие возможные ошибки
-                logger.error("Ошибка при обработке команды /start: %s", e)
+                logger.error("Ошибка в обработке команды /start: %s", e)
 
     # Регистрируем диалоги
     setup_dialogs(dp)
@@ -115,7 +161,7 @@ async def main():
     dp.include_router(game.router)
     dp.include_router(user_dialog.rating_router)
 
-    #Регистрируем middleware
+    # Регистрируем middleware
     dp.update.middleware(DatabaseMiddleware(async_session_maker))
 
     logging.basicConfig(level=logging.DEBUG)
