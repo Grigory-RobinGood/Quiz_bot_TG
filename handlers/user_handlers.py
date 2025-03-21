@@ -3,27 +3,31 @@ import logging
 from datetime import datetime
 
 from aiogram import Router, F, Bot
+from aiogram.enums import ContentType
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton, PreCheckoutQuery
 from aiogram_dialog import DialogManager, StartMode
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.db_functions import get_exchange_rates
-from db.models import AsyncSessionLocal, Users, ExchangeRates, ProposedQuestion, SponsorChannel, user_subscriptions
+from db.models import AsyncSessionLocal, Users, ExchangeRates, ProposedQuestion, SponsorChannel, user_subscriptions, \
+    Transaction
 from keyboards.keyboards import (main_kb, account_kb, get_balance_keyboard, exchange_kb, earn_coins_kb,
-                                 add_or_cancel)
+                                 add_or_cancel, top_up_keyboard)
 from lexicon.lexicon_ru import LEXICON_RU
 from services import filters as f, game
 from services.FSM import DialogStates, ExchangeStates, ProposeQuestionState
 from services.filters import StartGameCallbackData, BalanceCallbackData, ExchangeCallbackData, \
     ExchangeButtonCallbackData
 from services.game import start_game
+from services.services import process_telegram_pay, process_telegram_stars
 from services.user_dialog import rating_router
 
 router = Router()
+
 exchange_router = Router()
 logger = logging.getLogger(__name__)
 
@@ -56,10 +60,10 @@ async def process_help_command(callback: CallbackQuery):
         await callback.message.answer(text=LEXICON_RU['/help'], reply_markup=account_kb)
 
 
-#______________________Хэндлеры для выбора лиги___________________________________
+# ______________________Хэндлеры для выбора лиги___________________________________
 @router.callback_query(StartGameCallbackData.filter())
 async def handle_start_game(call: CallbackQuery, callback_data: StartGameCallbackData, state: FSMContext):
-    #Обработчик нажатия кнопки "Бронзовая лига".
+    # Обработчик нажатия кнопки "Бронзовая лига".
     if callback_data.league == "Bronze":
         league = callback_data.league
         user_id = call.from_user.id
@@ -85,7 +89,7 @@ async def handle_start_game(call: CallbackQuery, callback_data: StartGameCallbac
                 logger.error(f"Ошибка при запуске игры: {e}")
                 await call.message.answer("Произошла ошибка при запуске игры. Попробуйте позже.")
 
-    #Обработчик нажатия кнопки "Серебряная лига".
+    # Обработчик нажатия кнопки "Серебряная лига".
 
     if callback_data.league == "Silver":
         league = callback_data.league
@@ -112,7 +116,7 @@ async def handle_start_game(call: CallbackQuery, callback_data: StartGameCallbac
                 logger.error(f"Ошибка при запуске игры: {e}")
                 await call.message.answer("Произошла ошибка при запуске игры. Попробуйте позже.")
 
-    #Обработчик нажатия кнопки "Золотая лига".
+    # Обработчик нажатия кнопки "Золотая лига".
 
     if callback_data.league == "Gold":
         league = callback_data.league
@@ -160,7 +164,7 @@ async def show_balance(callback: CallbackQuery):
         if user:
             balance_text = (
                 f"💰 *Ваш баланс:*\n"
-                f"🥉 *Бронзовые монеты:* {user.balance_bronze}\n"
+                # f"🥉 *Бронзовые монеты:* {user.balance_bronze}\n"
                 f"🥈 *Серебряные монеты:* {user.balance_silver}\n"
                 f"🥇 *Золотые монеты:* {user.balance_gold}\n"
                 f"💵 *Рубли:* {user.balance_rubles:.2f}₽"
@@ -173,6 +177,108 @@ async def show_balance(callback: CallbackQuery):
         parse_mode="Markdown",
         reply_markup=get_balance_keyboard()
     )
+
+
+# ------------------- Обработка кнопки "Пополнить" -------------------
+@router.callback_query(F.data == "top_up_balance")
+async def show_topup_options(callback: CallbackQuery):
+    """ Показывает пользователю способы пополнения баланса """
+    await callback.answer()  # Убираем "часики"
+    await callback.message.edit_text("Выберите способ пополнения баланса:", reply_markup=top_up_keyboard)
+
+
+# нажатие кнопки "Отмена"
+@router.callback_query(F.data == "cancel")
+async def cancel_topup(callback: CallbackQuery, state: FSMContext):
+    """Обрабатывает нажатие кнопки 'Отмена' и возвращает в главное меню."""
+    await state.clear()
+    await callback.message.edit_text("Пополнение отменено.", reply_markup=get_balance_keyboard())
+
+
+# выбор способа пополнения и ввод суммы платежа
+@router.callback_query(lambda c: c.data in ["topup_card", "topup_stars"])
+async def handle_payment_method(callback: CallbackQuery, state: FSMContext):
+    """Обработка выбора метода оплаты"""
+    payment_method = callback.data
+    await state.update_data(payment_method=payment_method)
+
+    await callback.message.edit_text("Введите сумму пополнения (в рублях):")
+    await state.set_state("waiting_for_amount")
+
+
+# создание платежа
+@router.message(F.text, StateFilter("waiting_for_amount"))
+async def create_payment(message: Message, state: FSMContext):
+    """ Получает сумму и создаёт платёж в Telegram Pay или Telegram Stars """
+    data = await state.get_data()
+    payment_method = data.get("payment_method")
+
+    try:
+        amount = float(message.text)
+        if amount < 10:
+            await message.answer("❌ Сумма должна быть больше 10 руб. Введите корректное значение.")
+            return
+    except ValueError:
+        await message.answer("❌ Некорректное значение. Введите сумму целым числом.")
+        return
+
+    await state.update_data(original_amount=amount)  #  Сохраняем сумму в рублях
+
+    if payment_method == "topup_card":
+        await process_telegram_pay(message, amount)
+    elif payment_method == "topup_stars":
+        await process_telegram_stars(message, amount)
+
+
+@router.pre_checkout_query(lambda query: True)
+async def pre_checkout_query_handler(pre_checkout_query: PreCheckoutQuery):
+    """Обработчик проверки платежа Telegram Pay перед подтверждением."""
+    await pre_checkout_query.answer(ok=True)
+
+
+# обработка успешной оплаты
+@router.message(F.content_type == ContentType.SUCCESSFUL_PAYMENT)
+async def successful_payment_handler(message: Message, session: AsyncSession, state: FSMContext):
+    """Обработчик успешного платежа Telegram Pay и Telegram Stars."""
+    payment_info = message.successful_payment
+    user_id = message.from_user.id
+
+    # Получаем сохранённые данные о платеже
+    data = await state.get_data()
+    payment_method = data.get("payment_method", "topup_card")  # По умолчанию карта
+    original_amount = data.get("original_amount")  # Сумма в рублях, которую вводил пользователь
+
+    if not original_amount:
+        await message.answer("❌ Ошибка: не удалось определить сумму пополнения. Свяжитесь с поддержкой.")
+        return
+
+    # Обновляем баланс (всегда зачисляем ту сумму, что вводил пользователь!)
+    result = await session.execute(select(Users).filter_by(user_id=user_id))
+    user = result.scalars().first()
+
+    if user:
+        user.balance_rubles += original_amount  # Зачисляем изначально введённую сумму
+        session.add(user)
+        await session.commit()
+
+        # Записываем транзакцию
+        transaction = Transaction(
+            user_id=user_id,
+            amount=original_amount,
+            currency="RUB",
+            transaction_type="Пополнение"
+        )
+        session.add(transaction)
+        await session.commit()
+
+        await message.answer(
+            f"✅ Оплата на {original_amount:.2f} RUB успешно проведена! Ваш баланс пополнен.",
+            reply_markup=get_balance_keyboard()
+        )
+    else:
+        await message.answer("❌ Ошибка: ваш аккаунт не найден. Свяжитесь с поддержкой.")
+
+    await state.clear()  # Очищаем состояние после успешного платежа
 
 
 # Обработка кнопки Назад в меню Аккаунт
@@ -227,7 +333,7 @@ async def process_exchange(message: Message, state: FSMContext, session: AsyncSe
         if amount <= 0:
             raise ValueError
     except ValueError:
-        await message.answer("⚠️ Введите корректную сумму.")
+        await message.answer("⚠️ Введите корректную сумму.\n Например, 0.6 (разделитель 'точка')")
         return
 
     # Проверяем баланс пользователя
@@ -461,7 +567,7 @@ async def check_subscription(callback: CallbackQuery, session: AsyncSession, bot
     new_keyboard.inline_keyboard.append([InlineKeyboardButton(text="🔄 Проверить подписку",
                                                               callback_data="check_subscription")])
     new_keyboard.inline_keyboard.append([InlineKeyboardButton(text="🔙 Назад",
-                                                              callback_data="menu")])
+                                                              callback_data="earn_coins")])
 
     # Проверяем, изменилось ли что-то
     old_text = callback.message.text
@@ -482,7 +588,9 @@ async def invite_friend(callback: CallbackQuery):
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔗 Поделиться ссылкой",
-                              switch_inline_query=f"Присоединяйся к игре! {referral_link}")]
+                              switch_inline_query=f"Присоединяйся к игре! {referral_link}")],
+        [InlineKeyboardButton(text="🔙 Назад",
+                              callback_data="earn_coins")]
     ])
 
     await callback.message.edit_text(

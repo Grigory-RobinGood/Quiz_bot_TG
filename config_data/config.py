@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 from environs import Env
 
@@ -32,3 +33,8 @@ def load_config(path: str = None) -> Config:
             url=env.str("DATABASE_URL")
         )
     )
+
+
+PAY_TOKEN = str(os.getenv("TELEGRAM_PAY_TOKEN"))
+SHOP_ID = str(os.getenv('YOOKASSA_SHOP_ID'))
+SECRET_KEY = str(os.getenv('YOOKASSA_SECRET_KEY'))

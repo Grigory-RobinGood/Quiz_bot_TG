@@ -142,6 +142,26 @@ def get_balance_keyboard():
     return keyboard.as_markup()
 
 
+# _____________Инлайн клавиатура для пополнения баланса_________________
+top_up_keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="💳 Карта", callback_data="topup_card")],
+    [InlineKeyboardButton(text="⭐ Звёзды Telegram", callback_data="topup_stars")],
+    [InlineKeyboardButton(text="Отмена", callback_data="cancel")]
+])
+
+
+# Клавиатура для сертификатов пополнения баланса
+def certificate_keyboard():
+    buttons = [
+        InlineKeyboardButton(text="50 ₽", callback_data="cert_50"),
+        InlineKeyboardButton(text="100 ₽", callback_data="cert_100"),
+        InlineKeyboardButton(text="200 ₽", callback_data="cert_200"),
+        InlineKeyboardButton(text="500 ₽", callback_data="cert_500"),
+        InlineKeyboardButton(text="1000 ₽", callback_data="cert_1000"),
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=[buttons])
+
+
 # ____________Создаем инлайн клавиатуру для меню заработать____________
 earn_coins_kb = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="💡 Предложить свой вопрос", callback_data="propose_question")],

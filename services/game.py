@@ -3,7 +3,7 @@ import logging
 
 from aiogram import Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from sqlalchemy.sql.expression import func
 from sqlalchemy.future import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -19,8 +19,8 @@ router = Router()
 # Настройки времени для каждой лиги
 LEAGUE_SETTINGS = {
     "Bronze": {"cost": 0, "currency": None, "time_limit": 60},
-    "Silver": {"cost": 1000, "currency": "silver", "time_limit": 50},
-    "Gold": {"cost": 500, "currency": "gold", "time_limit": 40},
+    "Silver": {"cost": 100, "currency": "silver", "time_limit": 50},
+    "Gold": {"cost": 50, "currency": "gold", "time_limit": 40},
 }
 
 # Баллы за каждый вопрос
@@ -79,10 +79,16 @@ async def start_game(session, user_id: int, league: str, send_message, router, s
         # Проверяем баланс пользователя
         if league != "Bronze":
             if league_config["currency"] == "silver" and user.balance_silver < league_config["cost"]:
-                await send_message("Недостаточно серебряных монет для начала игры.", reply_markup=main_kb)
+                await send_message(f"Недостаточно серебряных монет для начала игры.\n"
+                                   f"Для того чтобы играть в этой лиге вам необходимо иметь на счету"
+                                   f"{league_config["cost"]} серебряных монет",
+                                   reply_markup=main_kb)
                 return
             elif league_config["currency"] == "gold" and user.balance_gold < league_config["cost"]:
-                await send_message("Недостаточно золотых монет для начала игры.", reply_markup=main_kb)
+                await send_message(f"Недостаточно золотых монет для начала игры.\n"
+                                   f"Для того чтобы играть в этой лиге вам необходимо иметь на счету"
+                                   f"{league_config["cost"]} золотых монет",
+                                   reply_markup=main_kb)
                 return
 
         # Списываем стоимость игры

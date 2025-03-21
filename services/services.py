@@ -1,8 +1,15 @@
+import base64
+import uuid
+
+import aiohttp
+from aiogram.types import Message, LabeledPrice
 from aiogram_dialog import DialogManager
 from datetime import datetime, timedelta
 import pytz
 from sqlalchemy import func, select, and_
 from aiocache import cached
+
+from config_data.config import PAY_TOKEN, SHOP_ID, SECRET_KEY
 from db.models import (
     Users, Game, ProposedQuestion, async_session_maker,
     user_referrals, user_subscriptions, LeagueEnum
@@ -166,3 +173,88 @@ async def get_rating_data(dialog_manager: DialogManager, **kwargs):
         "subscription_rating": subscription_rating_text,
         "referral_rating": referral_rating_text,
     }
+
+
+# Функции для платежей
+async def check_payment_status(payment_id: str) -> bool:
+    """Проверяет статус платежа в ЮКассе."""
+    auth_string = f"{SHOP_ID}:{SECRET_KEY}"
+    encoded_auth = base64.b64encode(auth_string.encode()).decode()
+
+    headers = {"Authorization": f"Basic {encoded_auth}"}
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(f"https://api.yookassa.ru/v3/payments/{payment_id}", headers=headers) as resp:
+            response_data = await resp.json()
+
+    return response_data.get("status") == "succeeded"
+
+
+# async def process_yookassa_payment(message: Message, state: FSMContext, amount: float, payment_method: str):
+#     """Создаёт платёж в ЮКассе."""
+#     payment_id = str(uuid.uuid4())
+#
+#     payment_data = {
+#         "amount": {"value": f"{amount:.2f}", "currency": "RUB"},
+#         "capture": True,
+#         "confirmation": {"type": "redirect", "return_url": "https://t.me/YOUR_BOT"},
+#         "description": f"Пополнение баланса на {amount} RUB",
+#         "metadata": {"user_id": message.from_user.id, "payment_method": payment_method}
+#     }
+#
+#     auth_string = f"{SHOP_ID}:{SECRET_KEY}"
+#     encoded_auth = base64.b64encode(auth_string.encode()).decode()
+#
+#     headers = {
+#         "Authorization": f"Basic {encoded_auth}",
+#         "Content-Type": "application/json",
+#         "Idempotence-Key": payment_id
+#     }
+#
+#     async with aiohttp.ClientSession() as session:
+#         async with session.post("https://api.yookassa.ru/v3/payments", json=payment_data, headers=headers) as resp:
+#             response_data = await resp.json()
+#             print(response_data)  # Логируем ответ для отладки
+#
+#     if "confirmation" in response_data:
+#         payment_url = response_data["confirmation"]["confirmation_url"]
+#         await message.answer(f"💳 Перейдите по ссылке для оплаты: [Оплатить]({payment_url})", parse_mode="Markdown")
+#         await state.update_data(payment_id=payment_id, amount=amount)
+#         await state.set_state("waiting_for_payment")
+#     else:
+#         error_message = response_data.get("description", "Ошибка при создании платежа.")
+#         await message.answer(f"❌ Ошибка: {error_message}")
+
+
+async def process_telegram_pay(message: Message, amount: float):
+    """Создаёт платёж через Telegram Pay."""
+    prices = [LabeledPrice(label="Пополнение баланса", amount=int(amount * 100))]  # В копейках
+
+    await message.bot.send_invoice(
+        chat_id=message.chat.id,
+        title="Пополнение баланса",
+        description=f"Пополнение на {amount} RUB",
+        payload=str(uuid.uuid4()),
+        provider_token=PAY_TOKEN,
+        currency="RUB",
+        prices=prices,
+        start_parameter="top_up"
+    )
+
+
+async def process_telegram_stars(message: Message, amount: float):
+    """Создаёт платёж через Telegram Stars с конвертацией."""
+    stars_amount = amount // 1.67  # Курс звезд к РУБ
+    await message.answer(f"🔹 Для пополнения {amount:.2f} RUB вам нужно отправить {stars_amount:.0f} Telegram Stars.")
+
+    # Отправляем запрос на перевод звёзд (примерный код, уточните детали у Telegram API)
+    await message.bot.send_invoice(
+        chat_id=message.chat.id,
+        title="Оплата Telegram Stars",
+        description=f"Пополнение баланса на {amount:.2f} RUB",
+        payload=str(uuid.uuid4()),
+        provider_token="STARS_PROVIDER_TOKEN",  # Замените на ваш токен
+        currency="XTR",  # Telegram Stars
+        prices=[LabeledPrice(label="Пополнение баланса", amount=int(stars_amount))],
+        start_parameter="top_up_stars"
+    )

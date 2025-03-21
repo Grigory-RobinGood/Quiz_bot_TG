@@ -93,7 +93,7 @@ class BaseQuestion(Base):
     answer_2 = Column(String(100), nullable=False)
     answer_3 = Column(String(100), nullable=False)
     answer_4 = Column(String(100), nullable=False)
-    difficulty = Column(Enum(DifficultyEnum, name='difficultyenum'), nullable=False)
+    difficulty = Column(Enum(DifficultyEnum, name='difficulty_enum'), nullable=False)
     league = Column(Enum(LeagueEnum, name='league_enum'), nullable=False)
 
 
