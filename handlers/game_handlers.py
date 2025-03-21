@@ -179,7 +179,7 @@ async def hint_take_money(callback: CallbackQuery, state: FSMContext, session: A
     user.balance_silver += current_score
     await session.commit()
 
-    await callback.message.edit_text(f"Игра завершена! Вы забрали {current_score} баллов.", reply_markup=main_kb)
+    await callback.message.edit_text(f"Игра завершена! Вы заработали {current_score} баллов.", reply_markup=main_kb)
     await state.clear()
 
 

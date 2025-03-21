@@ -258,3 +258,22 @@ async def process_telegram_stars(message: Message, amount: float):
         prices=[LabeledPrice(label="Пополнение баланса", amount=int(stars_amount))],
         start_parameter="top_up_stars"
     )
+
+
+# запрос чека об оплате из ЮКассы
+async def get_yookassa_receipt(payment_id: str):
+    """Запрашивает чек об оплате в ЮКассе"""
+    url = f"https://api.yookassa.ru/v3/payments/{payment_id}"
+
+    # Авторизация (Basic Auth)
+    auth_string = f"{SHOP_ID}:{SECRET_KEY}"
+    encoded_auth = base64.b64encode(auth_string.encode()).decode()
+
+    headers = {
+        "Authorization": f"Basic {encoded_auth}",
+        "Content-Type": "application/json"
+    }
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, headers=headers) as response:
+            return await response.json()

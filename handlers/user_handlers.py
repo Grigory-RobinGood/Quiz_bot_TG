@@ -23,7 +23,7 @@ from services.FSM import DialogStates, ExchangeStates, ProposeQuestionState
 from services.filters import StartGameCallbackData, BalanceCallbackData, ExchangeCallbackData, \
     ExchangeButtonCallbackData
 from services.game import start_game
-from services.services import process_telegram_pay, process_telegram_stars
+from services.services import process_telegram_pay, process_telegram_stars, get_yookassa_receipt
 from services.user_dialog import rating_router
 
 router = Router()
@@ -237,44 +237,57 @@ async def pre_checkout_query_handler(pre_checkout_query: PreCheckoutQuery):
 
 
 # обработка успешной оплаты
-@router.message(F.content_type == ContentType.SUCCESSFUL_PAYMENT)
 async def successful_payment_handler(message: Message, session: AsyncSession, state: FSMContext):
-    """Обработчик успешного платежа Telegram Pay и Telegram Stars."""
+    """ Обработчик успешного платежа через Telegram Pay и запрос чека из ЮКассы. """
     payment_info = message.successful_payment
     user_id = message.from_user.id
+    #invoice_payload = payment_info.invoice_payload  # Уникальный ID платежа
 
     # Получаем сохранённые данные о платеже
     data = await state.get_data()
-    payment_method = data.get("payment_method", "topup_card")  # По умолчанию карта
-    original_amount = data.get("original_amount")  # Сумма в рублях, которую вводил пользователь
+    payment_method = data.get("payment_method", "topup_card")  # По умолчанию "карта"
 
-    if not original_amount:
-        await message.answer("❌ Ошибка: не удалось определить сумму пополнения. Свяжитесь с поддержкой.")
-        return
+    # Определяем сумму пополнения
+    if payment_method == "topup_stars":
+        amount = payment_info.total_amount * 100  # Telegram Stars передаёт сумму без копеек
+    else:
+        amount = payment_info.total_amount / 100  # Для карт Telegram Pay передаёт сумму в копейках
 
-    # Обновляем баланс (всегда зачисляем ту сумму, что вводил пользователь!)
+    # Обновляем баланс пользователя
     result = await session.execute(select(Users).filter_by(user_id=user_id))
     user = result.scalars().first()
 
     if user:
-        user.balance_rubles += original_amount  # Зачисляем изначально введённую сумму
+        user.balance_rubles += amount
         session.add(user)
         await session.commit()
 
         # Записываем транзакцию
         transaction = Transaction(
             user_id=user_id,
-            amount=original_amount,
+            amount=amount,
             currency="RUB",
             transaction_type="Пополнение"
         )
         session.add(transaction)
         await session.commit()
 
-        await message.answer(
-            f"✅ Оплата на {original_amount:.2f} RUB успешно проведена! Ваш баланс пополнен.",
-            reply_markup=get_balance_keyboard()
-        )
+        # Запрос чека из ЮКассы (только если оплата картой)
+        if payment_method == "topup_card":
+            receipt_data = await get_yookassa_receipt(payment_info.provider_payment_charge_id)
+
+            if "receipt_registration" in receipt_data and receipt_data["receipt_registration"] == "succeeded":
+                receipt_url = receipt_data.get("receipt", {}).get("url", "Чек недоступен")
+                receipt_text = f"✅ Оплата на {amount:.2f} RUB успешно проведена!\n" \
+                               f"🧾 [📄 Посмотреть чек]({receipt_url})"
+            else:
+                receipt_text = f"✅ Оплата на {amount:.2f} RUB успешно проведена!\n" \
+                               "⚠ Чек пока не зарегистрирован. Попробуйте позже."
+        else:
+            receipt_text = f"✅ Оплата на {amount:.2f} RUB успешно проведена!"
+
+        await message.answer(receipt_text, parse_mode="Markdown", reply_markup=get_balance_keyboard())
+
     else:
         await message.answer("❌ Ошибка: ваш аккаунт не найден. Свяжитесь с поддержкой.")
 
