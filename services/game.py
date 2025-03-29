@@ -81,13 +81,13 @@ async def start_game(session, user_id: int, league: str, send_message, router, s
             if league_config["currency"] == "silver" and user.balance_silver < league_config["cost"]:
                 await send_message(f"Недостаточно серебряных монет для начала игры.\n"
                                    f"Для того чтобы играть в этой лиге вам необходимо иметь на счету"
-                                   f"{league_config["cost"]} серебряных монет",
+                                   f"{league_config['cost']} серебряных монет",
                                    reply_markup=main_kb)
                 return
             elif league_config["currency"] == "gold" and user.balance_gold < league_config["cost"]:
                 await send_message(f"Недостаточно золотых монет для начала игры.\n"
                                    f"Для того чтобы играть в этой лиге вам необходимо иметь на счету"
-                                   f"{league_config["cost"]} золотых монет",
+                                   f"{league_config['cost']} золотых монет",
                                    reply_markup=main_kb)
                 return
 

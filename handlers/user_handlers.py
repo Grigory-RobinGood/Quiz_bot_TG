@@ -7,16 +7,18 @@ from aiogram.enums import ContentType
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton, PreCheckoutQuery
+from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton, PreCheckoutQuery, \
+    LabeledPrice
 from aiogram_dialog import DialogManager, StartMode
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config_data.config import PAY_TOKEN
 from db.db_functions import get_exchange_rates
 from db.models import AsyncSessionLocal, Users, ExchangeRates, ProposedQuestion, SponsorChannel, user_subscriptions, \
     Transaction
 from keyboards.keyboards import (main_kb, account_kb, get_balance_keyboard, exchange_kb, earn_coins_kb,
-                                 add_or_cancel, top_up_keyboard)
+                                 add_or_cancel, top_up_keyboard, certificate_keyboard)
 from lexicon.lexicon_ru import LEXICON_RU
 from services import filters as f, game
 from services.FSM import DialogStates, ExchangeStates, ProposeQuestionState
@@ -31,6 +33,8 @@ router = Router()
 exchange_router = Router()
 logger = logging.getLogger(__name__)
 
+# Комиссия Telegram за платежи (обычно 1-2%)
+TELEGRAM_FEE_PERCENT = 0.018  # 1.8%
 
 # __________Этот хэндлер срабатывает на команду /account________________________________
 @router.callback_query(f.AccountCallbackData.filter())
@@ -195,103 +199,199 @@ async def cancel_topup(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text("Пополнение отменено.", reply_markup=get_balance_keyboard())
 
 
-# выбор способа пополнения и ввод суммы платежа
-@router.callback_query(lambda c: c.data in ["topup_card", "topup_stars"])
-async def handle_payment_method(callback: CallbackQuery, state: FSMContext):
-    """Обработка выбора метода оплаты"""
-    payment_method = callback.data
-    await state.update_data(payment_method=payment_method)
-
-    await callback.message.edit_text("Введите сумму пополнения (в рублях):")
-    await state.set_state("waiting_for_amount")
-
-
-# создание платежа
-@router.message(F.text, StateFilter("waiting_for_amount"))
-async def create_payment(message: Message, state: FSMContext):
-    """ Получает сумму и создаёт платёж в Telegram Pay или Telegram Stars """
-    data = await state.get_data()
-    payment_method = data.get("payment_method")
-
-    try:
-        amount = float(message.text)
-        if amount < 10:
-            await message.answer("❌ Сумма должна быть больше 10 руб. Введите корректное значение.")
-            return
-    except ValueError:
-        await message.answer("❌ Некорректное значение. Введите сумму целым числом.")
-        return
-
-    await state.update_data(original_amount=amount)  #  Сохраняем сумму в рублях
-
-    if payment_method == "topup_card":
-        await process_telegram_pay(message, amount)
-    elif payment_method == "topup_stars":
-        await process_telegram_stars(message, amount)
+@router.callback_query(lambda c: c.data in ["topup_card"])
+async def cert_pay_method(callback: CallbackQuery, state: FSMContext):
+    await callback.message.edit_text("Для доступа к золотой и серебряной лиге Вам понадобятся золотые и "
+                                     "серебряные монеты. \n"
+                                     "Для того чтобы обменять рубли на золотые и серебряные монеты приобретите "
+                                     "сертификат на пополнение баланса\n"
+                                     "Выберите сумму сертификата для пополнения" ,
+                                     reply_markup=certificate_keyboard())
+    await state.set_state("cert_pay")
 
 
+# Обработка выбора сертификата
+# 🔹 Выбор суммы сертификата
+@router.callback_query(lambda c: c.data.startswith("cert_"))
+async def process_certificate_selection(callback: CallbackQuery, state: FSMContext):
+    """Обрабатывает выбор сертификата и создаёт инвойс через Telegram Pay."""
+    cert_amount = int(callback.data.split("_")[1])  # Получаем сумму сертификата
+    user_id = callback.from_user.id
+    invoice_payload = f"cert_{user_id}_{cert_amount}"  # Уникальный идентификатор платежа
+
+    # Отправляем инвойс
+    await callback.message.answer_invoice(
+        title="Пополнение баланса",
+        description=f"Сертификат на {cert_amount} ₽",
+        provider_token=PAY_TOKEN,
+        currency="RUB",
+        prices=[LabeledPrice(label=f"Сертификат {cert_amount} ₽", amount=cert_amount * 100)],
+        start_parameter="cert_payment",
+        payload=invoice_payload
+    )
+
+    # Сохраняем сумму сертификата в состояние
+    await state.update_data(cert_amount=cert_amount)
+
+
+# 🔹 Обработка предоплаты
 @router.pre_checkout_query(lambda query: True)
 async def pre_checkout_query_handler(pre_checkout_query: PreCheckoutQuery):
-    """Обработчик проверки платежа Telegram Pay перед подтверждением."""
+    """Обработчик проверки платежа перед подтверждением."""
     await pre_checkout_query.answer(ok=True)
 
 
-# обработка успешной оплаты
-async def successful_payment_handler(message: Message, session: AsyncSession, state: FSMContext):
-    """ Обработчик успешного платежа через Telegram Pay и запрос чека из ЮКассы. """
+# 🔹 Обработка успешного платежа
+@router.message(F.content_type == ContentType.SUCCESSFUL_PAYMENT)
+async def successful_certificate_payment(message: Message, session: AsyncSession, state: FSMContext):
+    """Обрабатывает успешную оплату сертификата через Telegram Pay и записывает данные в БД."""
     payment_info = message.successful_payment
     user_id = message.from_user.id
-    #invoice_payload = payment_info.invoice_payload  # Уникальный ID платежа
+    invoice_payload = payment_info.invoice_payload  # Уникальный идентификатор
+    total_amount = payment_info.total_amount / 100  # Переводим из копеек в рубли
+    telegram_fee = round(total_amount * TELEGRAM_FEE_PERCENT, 2)  # Рассчитываем комиссию Telegram
+    credited_amount = total_amount - telegram_fee  # Итоговая сумма после комиссии
 
-    # Получаем сохранённые данные о платеже
+    # Получаем сумму сертификата из состояния
     data = await state.get_data()
-    payment_method = data.get("payment_method", "topup_card")  # По умолчанию "карта"
-
-    # Определяем сумму пополнения
-    if payment_method == "topup_stars":
-        amount = payment_info.total_amount * 100  # Telegram Stars передаёт сумму без копеек
-    else:
-        amount = payment_info.total_amount / 100  # Для карт Telegram Pay передаёт сумму в копейках
+    cert_amount = data.get("cert_amount", total_amount)
 
     # Обновляем баланс пользователя
     result = await session.execute(select(Users).filter_by(user_id=user_id))
     user = result.scalars().first()
 
     if user:
-        user.balance_rubles += amount
+        user.balance_rubles += credited_amount
         session.add(user)
         await session.commit()
 
         # Записываем транзакцию
         transaction = Transaction(
             user_id=user_id,
-            amount=amount,
+            amount=total_amount,
+            credited_amount=credited_amount,  # Сумма после вычета комиссии
             currency="RUB",
-            transaction_type="Пополнение"
+            transaction_type="Пополнение (сертификат)",
+            payment_provider="Telegram Pay",
+            fee=telegram_fee,  # Комиссия Telegram
+            payment_id=payment_info.provider_payment_charge_id,
+            invoice_payload=invoice_payload
         )
         session.add(transaction)
         await session.commit()
 
-        # Запрос чека из ЮКассы (только если оплата картой)
-        if payment_method == "topup_card":
-            receipt_data = await get_yookassa_receipt(payment_info.provider_payment_charge_id)
-
-            if "receipt_registration" in receipt_data and receipt_data["receipt_registration"] == "succeeded":
-                receipt_url = receipt_data.get("receipt", {}).get("url", "Чек недоступен")
-                receipt_text = f"✅ Оплата на {amount:.2f} RUB успешно проведена!\n" \
-                               f"🧾 [📄 Посмотреть чек]({receipt_url})"
-            else:
-                receipt_text = f"✅ Оплата на {amount:.2f} RUB успешно проведена!\n" \
-                               "⚠ Чек пока не зарегистрирован. Попробуйте позже."
-        else:
-            receipt_text = f"✅ Оплата на {amount:.2f} RUB успешно проведена!"
-
-        await message.answer(receipt_text, parse_mode="Markdown", reply_markup=get_balance_keyboard())
-
+        # Отправляем сообщение о зачислении
+        await message.answer(
+            f"✅ Оплата на {total_amount:.2f} ₽ прошла успешно!\n"
+            f"📥 Зачислено: {credited_amount:.2f} ₽ (с учётом комиссии Telegram)\n"
+            f"💳 Метод оплаты: Telegram Pay\n"
+            f"🆔 Номер транзакции: `{payment_info.provider_payment_charge_id}`",
+            parse_mode="Markdown",
+            reply_markup=get_balance_keyboard()
+        )
     else:
         await message.answer("❌ Ошибка: ваш аккаунт не найден. Свяжитесь с поддержкой.")
 
-    await state.clear()  # Очищаем состояние после успешного платежа
+    await state.clear()  # Очищаем состояние
+
+
+# выбор способа пополнения и ввод суммы платежа
+# @router.callback_query(lambda c: c.data in ["topup_card", "topup_stars"])
+# async def handle_payment_method(callback: CallbackQuery, state: FSMContext):
+#     """Обработка выбора метода оплаты"""
+#     payment_method = callback.data
+#     await state.update_data(payment_method=payment_method)
+#
+#     await callback.message.edit_text("Введите сумму пополнения (в рублях):")
+#     await state.set_state("waiting_for_amount")
+#
+#
+# # создание платежа
+# @router.message(F.text, StateFilter("waiting_for_amount"))
+# async def create_payment(message: Message, state: FSMContext):
+#     """ Получает сумму и создаёт платёж в Telegram Pay или Telegram Stars """
+#     data = await state.get_data()
+#     payment_method = data.get("payment_method")
+#
+#     try:
+#         amount = float(message.text)
+#         if amount < 10:
+#             await message.answer("❌ Сумма должна быть больше 10 руб. Введите корректное значение.")
+#             return
+#     except ValueError:
+#         await message.answer("❌ Некорректное значение. Введите сумму целым числом.")
+#         return
+#
+#     await state.update_data(original_amount=amount)  #  Сохраняем сумму в рублях
+#
+#     if payment_method == "topup_card":
+#         await process_telegram_pay(message, amount)
+#     elif payment_method == "topup_stars":
+#         await process_telegram_stars(message, amount)
+#
+#
+# @router.pre_checkout_query(lambda query: True)
+# async def pre_checkout_query_handler(pre_checkout_query: PreCheckoutQuery):
+#     """Обработчик проверки платежа Telegram Pay перед подтверждением."""
+#     await pre_checkout_query.answer(ok=True)
+#
+#
+# # обработка успешной оплаты
+# async def successful_payment_handler(message: Message, session: AsyncSession, state: FSMContext):
+#     """ Обработчик успешного платежа через Telegram Pay и запрос чека из ЮКассы. """
+#     payment_info = message.successful_payment
+#     user_id = message.from_user.id
+#     #invoice_payload = payment_info.invoice_payload  # Уникальный ID платежа
+#
+#     # Получаем сохранённые данные о платеже
+#     data = await state.get_data()
+#     payment_method = data.get("payment_method", "topup_card")  # По умолчанию "карта"
+
+    # # Определяем сумму пополнения
+    # if payment_method == "topup_stars":
+    #     amount = payment_info.total_amount * 100  # Telegram Stars передаёт сумму без копеек
+    # else:
+    #     amount = payment_info.total_amount / 100  # Для карт Telegram Pay передаёт сумму в копейках
+    #
+    # # Обновляем баланс пользователя
+    # result = await session.execute(select(Users).filter_by(user_id=user_id))
+    # user = result.scalars().first()
+    #
+    # if user:
+    #     user.balance_rubles += amount
+    #     session.add(user)
+    #     await session.commit()
+    #
+    #     # Записываем транзакцию
+    #     transaction = Transaction(
+    #         user_id=user_id,
+    #         amount=amount,
+    #         currency="RUB",
+    #         transaction_type="Пополнение"
+    #     )
+    #     session.add(transaction)
+    #     await session.commit()
+    #
+    #     # Запрос чека из ЮКассы (только если оплата картой)
+    #     if payment_method == "topup_card":
+    #         receipt_data = await get_yookassa_receipt(payment_info.provider_payment_charge_id)
+    #
+    #         if "receipt_registration" in receipt_data and receipt_data["receipt_registration"] == "succeeded":
+    #             receipt_url = receipt_data.get("receipt", {}).get("url", "Чек недоступен")
+    #             receipt_text = f"✅ Оплата на {amount:.2f} RUB успешно проведена!\n" \
+    #                            f"🧾 [📄 Посмотреть чек]({receipt_url})"
+    #         else:
+    #             receipt_text = f"✅ Оплата на {amount:.2f} RUB успешно проведена!\n" \
+    #                            "⚠ Чек пока не зарегистрирован. Попробуйте позже."
+    #     else:
+    #         receipt_text = f"✅ Оплата на {amount:.2f} RUB успешно проведена!"
+    #
+    #     await message.answer(receipt_text, parse_mode="Markdown", reply_markup=get_balance_keyboard())
+    #
+    # else:
+    #     await message.answer("❌ Ошибка: ваш аккаунт не найден. Свяжитесь с поддержкой.")
+    #
+    # await state.clear()  # Очищаем состояние после успешного платежа
 
 
 # Обработка кнопки Назад в меню Аккаунт

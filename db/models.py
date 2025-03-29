@@ -1,11 +1,13 @@
-import os
 import logging
+import os
+from enum import Enum as PyEnum
+
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Boolean, Float, DateTime, Enum, Table, func, BigInteger
 )
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import relationship, declarative_base, sessionmaker
-from enum import Enum as PyEnum
+
 from config_data.config import Config, load_config
 
 # Загрузка конфигурации
@@ -155,11 +157,16 @@ class SponsorChannel(Base):
 class Transaction(Base):
     __tablename__ = 'transactions'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey('users.user_id'), nullable=False)
-    amount = Column(Float, nullable=False)
-    currency = Column(String(50), nullable=False)
-    transaction_type = Column(String(50), nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.timezone('UTC', func.now()))
+    user_id = Column(BigInteger, ForeignKey('users.user_id'), nullable=False, index=True)
+    amount = Column(Float, nullable=False)  # Исходная сумма платежа
+    credited_amount = Column(Float, nullable=False)  # Сумма после комиссии
+    currency = Column(String(10), nullable=False)  # Валюта платежа (обычно "RUB")
+    transaction_type = Column(String(50), nullable=False)  # Тип операции (например, "Пополнение")
+    payment_provider = Column(String(50), nullable=False)  # Провайдер платежа ("Telegram Pay")
+    fee = Column(Float, nullable=False)  # Комиссия платежной системы
+    payment_id = Column(String(100), nullable=False, index=True)  # Уникальный ID платежа от Telegram
+    invoice_payload = Column(String(255), nullable=True)  # ID счета (необязательно)
+    created_at = Column(DateTime(timezone=True), server_default=func.timezone('UTC', func.now()))  # Дата создания
 
     user = relationship('Users', back_populates='transactions')
 

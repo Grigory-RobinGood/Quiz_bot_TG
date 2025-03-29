@@ -2,10 +2,10 @@ import logging
 
 from aiogram.enums import ChatMemberStatus
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import func
-from sqlalchemy.exc import SQLAlchemyError
 
 from db.models import Question, Users, ExchangeRates, SponsorChannel
 
