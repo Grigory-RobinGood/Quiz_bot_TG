@@ -31,4 +31,4 @@ jobs:
           push: true
           # С каким тегом будет загружен образ
           # Переменные тоже поддерживаются
-          tags: robbing00d/Quiz_bot_tg-docker-push:latest
+          tags: robbing00d/quiz_bot_tg-docker-push:latest
